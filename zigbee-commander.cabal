@@ -38,11 +38,12 @@ flag maintainer
 library
   exposed-modules:
     Network.XXX.ZigBee.Commander.Address
+    Network.XXX.ZigBee.Commander.Command
     Network.XXX.ZigBee.Commander.Config
     Network.XXX.ZigBee.Commander.Device
     Network.XXX.ZigBee.Commander.GPIO
-    Network.XXX.ZigBee.Commander.Local
     Network.XXX.ZigBee.Commander.Internal.Commander
+    Network.XXX.ZigBee.Commander.Local
 
   other-modules:
 

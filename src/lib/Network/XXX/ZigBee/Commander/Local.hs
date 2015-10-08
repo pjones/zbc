@@ -69,6 +69,6 @@ connect x =
       if diffUTCTime now t < wait
         then return x
         else do
-          h   <- liftIO (openFile path ReadWriteMode)
-          -- FIXME: turn off buffering
+          h   <- liftIO (openFile path ReadWriteMode) -- Open in binary mode
+          liftIO (hSetBuffering h NoBuffering)
           return $ ConnectionPendingLocal path h

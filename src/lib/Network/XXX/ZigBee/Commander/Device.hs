@@ -32,7 +32,7 @@ type GPIOs = Map Text GPIO
 
 --------------------------------------------------------------------------------
 data Device = Device
-  { deviceAddress :: Address
+  { deviceAddress :: MAC
   , deviceGPIOs   :: GPIOs
   -- , devicePanID :: PanID?
   }

@@ -11,17 +11,33 @@ contained in the LICENSE file.
 
 --------------------------------------------------------------------------------
 module Network.XXX.ZigBee.Commander.Address
-       ( MAC (..)
-       , Address (..)
+       ( MAC
+       , addressFromMAC
+       , coordinator
+       , broadcast
+       , genericNetworkAddress
        ) where
 
 --------------------------------------------------------------------------------
 -- Package Imports:
+import qualified Data.ByteString as ByteString
 import qualified Network.Protocol.ZigBee.ZNet25 as Z
--- import qualified Data.ByteString as BS
 
 --------------------------------------------------------------------------------
 data MAC = MAC Z.Address
 
 --------------------------------------------------------------------------------
-data Address = Address MAC Z.NetworkAddress
+addressFromMAC :: MAC -> Z.Address
+addressFromMAC (MAC addr) = addr
+
+--------------------------------------------------------------------------------
+coordinator :: MAC
+coordinator = undefined
+
+--------------------------------------------------------------------------------
+broadcast :: MAC
+broadcast = undefined
+
+--------------------------------------------------------------------------------
+genericNetworkAddress :: Z.NetworkAddress
+genericNetworkAddress = Z.networkAddress (ByteString.pack [0xff, 0xfe])
