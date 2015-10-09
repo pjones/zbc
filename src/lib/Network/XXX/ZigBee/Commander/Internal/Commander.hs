@@ -14,27 +14,53 @@ contained in the LICENSE file.
 --------------------------------------------------------------------------------
 module Network.XXX.ZigBee.Commander.Internal.Commander
        ( Commander
+       , logger
        , runCommander
        , MonadIO
        , liftIO
        , ask
        , asks
+       , get
+       , gets
+       , put
+       , modify
+       , modify'
        ) where
 
 --------------------------------------------------------------------------------
 -- Package Imports:
-import Control.Monad.Reader
+import Control.Monad.RWS
 import Control.Monad.Trans.Either
+import Data.Text (Text)
+import qualified Data.Text.IO as Text
+import System.IO
 
 --------------------------------------------------------------------------------
 -- Local Imports:
 import Network.XXX.ZigBee.Commander.Config
+import Network.XXX.ZigBee.Commander.Internal.State
 
 --------------------------------------------------------------------------------
 newtype Commander m a =
-  Commander {unC :: ReaderT Config (EitherT String m) a}
-  deriving (Functor, Applicative, Monad, MonadIO, MonadReader Config)
+  Commander {unC :: RWST Config () State (EitherT String m) a}
+  deriving ( Functor, Applicative, Monad, MonadIO
+           , MonadReader Config, MonadState State
+           )
 
 --------------------------------------------------------------------------------
-runCommander :: Config -> Commander m a -> m (Either String a)
-runCommander config cmdr = runEitherT $ runReaderT (unC cmdr) config
+-- FIXME:
+logger :: (MonadIO m) => Text -> Commander m ()
+logger = liftIO . Text.hPutStrLn stdout
+
+--------------------------------------------------------------------------------
+runCommander :: (Monad m)
+             => FilePath
+             -> Config
+             -> Commander m a
+             -> m (Either String a)
+runCommander path config cmdr = do
+  result <- runEitherT $ evalRWST (unC cmdr) config (initialState path)
+
+  return $ case result of
+    Left e       -> Left  e
+    Right (a, _) -> Right a

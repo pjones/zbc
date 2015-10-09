@@ -10,15 +10,17 @@ contained in the LICENSE file.
 -}
 
 --------------------------------------------------------------------------------
-module Network.XXX.ZigBee.Commander.Device
-       ( Device (..)
+module Network.XXX.ZigBee.Commander.Node
+       ( Node (..)
+       , NodeAddress (..)
        , GPIOs
+       , remoteNode
        ) where
 
 --------------------------------------------------------------------------------
 -- Package Imports:
 import Data.Map (Map)
--- import qualified Data.Map as Map
+import qualified Data.Map as Map
 import Data.Text (Text)
 
 --------------------------------------------------------------------------------
@@ -27,12 +29,26 @@ import Network.XXX.ZigBee.Commander.Address
 import Network.XXX.ZigBee.Commander.GPIO
 
 --------------------------------------------------------------------------------
+data Node = Node
+  { nodeAddress :: NodeAddress
+  , nodeGPIOs   :: GPIOs
+  }
+
+--------------------------------------------------------------------------------
+data NodeAddress = LocalNode
+                   -- ^ FIXME:
+
+                 | RemoteNode MAC
+                   -- ^ A node on the ZigBee network with the
+                   -- specified 'MAC' address.
+
+--------------------------------------------------------------------------------
 -- | Mapping between GPIO names and the GPIO value that represents them.
 type GPIOs = Map Text GPIO
 
 --------------------------------------------------------------------------------
-data Device = Device
-  { deviceAddress :: MAC
-  , deviceGPIOs   :: GPIOs
-  -- , devicePanID :: PanID?
-  }
+remoteNode :: MAC -> Node
+remoteNode mac =
+  Node { nodeAddress = RemoteNode mac
+       , nodeGPIOs   = Map.empty
+       }
