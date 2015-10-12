@@ -50,16 +50,16 @@ newtype Commander m a =
 --------------------------------------------------------------------------------
 -- FIXME:
 logger :: (MonadIO m) => Text -> Commander m ()
-logger = liftIO . Text.hPutStrLn stdout
+logger = liftIO . Text.hPutStrLn stderr
 
 --------------------------------------------------------------------------------
 runCommander :: (Monad m)
-             => FilePath
-             -> Config
+             => Config
              -> Commander m a
              -> m (Either String a)
-runCommander path config cmdr = do
-  result <- runEitherT $ evalRWST (unC cmdr) config (initialState path)
+runCommander config cmdr = do
+  result <- runEitherT $ evalRWST (unC cmdr) config
+                                  (initialState $ cDeviceFile config)
 
   return $ case result of
     Left e       -> Left  e

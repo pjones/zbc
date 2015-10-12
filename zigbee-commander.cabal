@@ -40,11 +40,12 @@ library
     Network.XXX.ZigBee.Commander.Address
     Network.XXX.ZigBee.Commander.Command
     Network.XXX.ZigBee.Commander.Config
-    Network.XXX.ZigBee.Commander.Node
     Network.XXX.ZigBee.Commander.GPIO
     Network.XXX.ZigBee.Commander.Internal.Commander
+    Network.XXX.ZigBee.Commander.Internal.Main
     Network.XXX.ZigBee.Commander.Internal.Serial
     Network.XXX.ZigBee.Commander.Internal.State
+    Network.XXX.ZigBee.Commander.Node
 
   other-modules:
 
@@ -57,6 +58,7 @@ library
     ghc-prof-options: -prof -auto-all
 
   build-depends: aeson                >= 0.8   && < 0.10
+               , async                >= 2.0   && < 2.1
                , base                 >= 4.6   && < 5.0
                , bytestring           >= 0.10  && < 0.11
                , containers           >= 0.5   && < 0.6
@@ -74,11 +76,11 @@ library
                , zigbee-znet25        >= 0.1   && < 0.2
 
 --------------------------------------------------------------------------------
--- executable vimeta
---   default-language: Haskell2010
---   main-is: src/Main.hs
---   build-depends: base, vimeta
---   ghc-options: -Wall -fwarn-incomplete-uni-patterns
+executable zbc
+  default-language: Haskell2010
+  main-is: src/bin/zbc.hs
+  build-depends: base, zigbee-commander
+  ghc-options: -Wall -fwarn-incomplete-uni-patterns -threaded
 
---   if flag(maintainer)
---     ghc-options: -Werror
+  if flag(maintainer)
+    ghc-options: -Werror

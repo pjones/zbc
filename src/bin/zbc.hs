@@ -10,20 +10,12 @@ contained in the LICENSE file.
 -}
 
 --------------------------------------------------------------------------------
-module Network.XXX.ZigBee.Commander.Config
-       ( Config (..)
-       , defaultConfig
-       ) where
+module Main (main) where
 
 --------------------------------------------------------------------------------
-data Config = Config
-  { cDeviceFile             :: FilePath
-  , cConnectionRetryTimeout :: Int
-  }
+-- Local Imports:
+import Network.XXX.ZigBee.Commander.Internal.Main
 
 --------------------------------------------------------------------------------
-defaultConfig :: Config
-defaultConfig =
-  Config { cDeviceFile = "/dev/ttyUSB0"
-         , cConnectionRetryTimeout = 5
-         }
+main :: IO ()
+main = commanderMain
