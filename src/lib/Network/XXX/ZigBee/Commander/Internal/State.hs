@@ -12,7 +12,7 @@ contained in the LICENSE file.
 --------------------------------------------------------------------------------
 module Network.XXX.ZigBee.Commander.Internal.State
        ( State (..)
-       , DeviceNodeState (..)
+       , DeviceStatus (..)
        , initialState
        ) where
 
@@ -25,22 +25,22 @@ import System.IO
 
 --------------------------------------------------------------------------------
 data State = State
-  { deviceState  :: DeviceNodeState
+  { deviceStatus :: DeviceStatus
   , decoderState :: Z.DecoderState
   }
 
 --------------------------------------------------------------------------------
-data DeviceNodeState = DeviceNodeState FilePath (Either UTCTime Handle)
+data DeviceStatus = DeviceStatus FilePath (Either UTCTime Handle)
 
 --------------------------------------------------------------------------------
 initialState :: FilePath -> State
-initialState path = State { deviceState  = initialDeviceState path
+initialState path = State { deviceStatus = initialDeviceState path
                           , decoderState = Z.initDecode
                           }
 
 --------------------------------------------------------------------------------
-initialDeviceState :: FilePath -> DeviceNodeState
-initialDeviceState path = DeviceNodeState path (Left initialTime)
+initialDeviceState :: FilePath -> DeviceStatus
+initialDeviceState path = DeviceStatus path (Left initialTime)
   where
     initialTime :: UTCTime
     initialTime =  UTCTime (ModifiedJulianDay 0) (fromIntegral (0 :: Integer))

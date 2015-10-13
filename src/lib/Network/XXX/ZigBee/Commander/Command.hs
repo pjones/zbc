@@ -12,7 +12,7 @@ contained in the LICENSE file.
 --------------------------------------------------------------------------------
 module Network.XXX.ZigBee.Commander.Command
        ( Command (..)
-       , commandToFrame
+       , mkFrame
        , Destination (..)
        , ATCode
        , atCode
@@ -43,6 +43,7 @@ data Command = AT Destination ATCode (Maybe Payload)
 --------------------------------------------------------------------------------
 -- | Where to send commands.
 data Destination = ToNode MAC    -- ^ Send to a specific node.
+                 | ToLocal       -- ^ Send to the locally connected node.
                  | ToCoordinator -- ^ Send to the local coordinator.
                  | Broadcast     -- ^ Broadcast to all nodes.
 
@@ -50,6 +51,7 @@ data Destination = ToNode MAC    -- ^ Send to a specific node.
 -- | Turn a destination address into a ZigBee address.
 undest :: Destination -> Z.Address
 undest (ToNode mac)  = addressFromMAC mac
+undest ToLocal       = addressFromMAC coordinator
 undest ToCoordinator = addressFromMAC coordinator
 undest Broadcast     = addressFromMAC broadcast
 
@@ -87,12 +89,14 @@ unpayload Nothing             = ByteString.empty
 unpayload (Just (Payload bs)) = bs
 
 --------------------------------------------------------------------------------
-commandToFrame :: Z.FrameId -> Command -> Z.Frame
-commandToFrame fid cmd =
+mkFrame :: Z.FrameId -> Command -> Z.Frame
+mkFrame fid cmd =
   case cmd of
-    AT dest code params -> Z.RemoteCommandRequest fid
-                                                  (undest dest)
-                                                  genericNetworkAddress
-                                                  0x02
-                                                  (unatcode code)
-                                                  (unpayload params)
+    -- Local AT Command:
+    AT ToLocal code params ->
+      Z.ATCommand fid (unatcode code) (unpayload params)
+
+    -- Remote AT Command:
+    AT dest code params ->
+      Z.RemoteCommandRequest fid (undest dest) genericNetworkAddress 0x02
+                             (unatcode code) (unpayload params)

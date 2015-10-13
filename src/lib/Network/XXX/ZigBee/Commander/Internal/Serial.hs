@@ -24,19 +24,19 @@ import Control.Monad.State (runState)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
 import Data.Either
-import Data.Monoid
 import qualified Data.Text as Text
 import Data.Time.Clock
 import qualified Network.Protocol.ZigBee.ZNet25 as Z
 import System.Hardware.Serialport
 import System.IO
-import Text.Printf (printf)
 
 --------------------------------------------------------------------------------
 -- Local Imports:
+import Network.XXX.ZigBee.Commander.Command
 import Network.XXX.ZigBee.Commander.Config
 import Network.XXX.ZigBee.Commander.Internal.Commander
 import Network.XXX.ZigBee.Commander.Internal.State
+import Network.XXX.ZigBee.Commander.Internal.Util
 
 --------------------------------------------------------------------------------
 -- | Process incoming and outgoing frames in a separate thread.  This
@@ -66,21 +66,17 @@ serialThread inchan outchan = do
     waitWrite = liftIO (async $ readChan inchan)
 
 --------------------------------------------------------------------------------
-device :: (MonadIO m) => Commander m DeviceNodeState
+device :: (MonadIO m) => Commander m DeviceStatus
 device = do
   s <- get
-  let ns = deviceState s
+  let ns = deviceStatus s
 
   case ns of
-    DeviceNodeState _ (Right _)   -> return ns
-    DeviceNodeState path (Left t) -> do r <- connect path t
-                                        maybe (return ns) (update s) r
-
+    DeviceStatus _ (Right _)   -> return ns
+    DeviceStatus path (Left t) -> connect path t >>=
+                                  maybe (return ns) (connected s)
   where
-    update :: (Monad m) => State -> DeviceNodeState -> Commander m DeviceNodeState
-    update s ns = put s {deviceState = ns} >> return ns
-
-    connect :: (MonadIO m) => FilePath -> UTCTime -> Commander m (Maybe DeviceNodeState)
+    connect :: (MonadIO m) => FilePath -> UTCTime -> Commander m (Maybe DeviceStatus)
     connect path t = do
       now  <- liftIO getCurrentTime
       secs <- fromIntegral <$> asks cConnectionRetryTimeout
@@ -91,23 +87,27 @@ device = do
           -- FIXME: Guard for exceptions.
           -- FIXME: Store serial port settings in Config.
           h <- liftIO (hOpenSerial path defaultSerialSettings)
-          return . Just $ DeviceNodeState path (Right h)
+          return . Just $ DeviceStatus path (Right h)
+
+    connected :: (MonadIO m) => State -> DeviceStatus -> Commander m DeviceStatus
+    connected s ns = do put s {deviceStatus = ns}
+                        writer [nodeDiscovery]
+                        return ns
+
+    nodeDiscovery :: Z.Frame -- Send an ATND command.
+    nodeDiscovery = mkFrame 1 (AT ToLocal (78, 68) Nothing)
 
 --------------------------------------------------------------------------------
 withConnectedDevice :: (MonadIO m)
-                    => (Maybe Handle -> Commander m a)
-                    -- ^ Function to call when the local device node
-                    -- is connected.
-
-                    -> Commander m a
-                    -- ^ Result.
+                    => (Maybe Handle -> Commander m a) -> Commander m a
 withConnectedDevice f = do
   ns <- device
 
+  -- FIXME: Catch exceptions when calling `f' and then close the
+  -- device and reset it back to a pending state.
   case ns of
-    DeviceNodeState _ (Left _)  -> f Nothing
-    DeviceNodeState _ (Right h) -> f (Just h) -- FIXME: catch exceptions,
-                                              -- disable device.
+    DeviceStatus _ (Left _)  -> f Nothing
+    DeviceStatus _ (Right h) -> f (Just h)
 
 --------------------------------------------------------------------------------
 writer :: (MonadIO m) => [Z.Frame] -> Commander m ()
@@ -120,7 +120,9 @@ writer frames = withConnectedDevice go
     -- FIXME: add support for hPutNonBlocking by maintaining a write
     -- buffer and trying to flush that buffer when called.
     write :: (MonadIO m) => Handle -> [ByteString] -> Commander m ()
-    write h = liftIO . ByteString.hPut h . ByteString.concat
+    write h bs = let bs' = ByteString.concat bs
+                  in liftIO (ByteString.hPut h bs') >>
+                     debug (hexdump "wrote bytes: " bs')
 
 --------------------------------------------------------------------------------
 reader :: (MonadIO m) => Commander m [Z.Frame]
@@ -131,7 +133,7 @@ reader = withConnectedDevice go
     go (Just h) = do
       s  <- get
       bs <- liftIO (ByteString.hGetSome h 1024)
-      hexdump bs -- FIXME: only when debugging output is enabled
+      debug (hexdump "read bytes: " bs)
 
       let (results, decoderState') = runState (Z.decode bs) (decoderState s)
           (errors,  frames)        = partitionEithers results
@@ -139,7 +141,3 @@ reader = withConnectedDevice go
       put s {decoderState = decoderState'}
       mapM_ (logger . Text.pack) errors
       return frames
-
-    hexdump :: (MonadIO m) => ByteString -> Commander m ()
-    hexdump bs = let encoded = concatMap (printf "%02x ") (ByteString.unpack bs)
-                  in logger ("read bytes: " <> Text.pack encoded)

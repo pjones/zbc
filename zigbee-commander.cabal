@@ -45,6 +45,7 @@ library
     Network.XXX.ZigBee.Commander.Internal.Main
     Network.XXX.ZigBee.Commander.Internal.Serial
     Network.XXX.ZigBee.Commander.Internal.State
+    Network.XXX.ZigBee.Commander.Internal.Util
     Network.XXX.ZigBee.Commander.Node
 
   other-modules:

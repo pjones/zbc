@@ -1,0 +1,34 @@
+# General configuration options:
+config:
+  device: /dev/ttyUSB0
+
+# Node name to address table:
+#
+# List node names along with their MAC addresses in order to refer to
+# them by name in the rest of the configuration.
+#
+# There are a few pre-defined names:
+#  - localnode: The physically connected to the serial (USB) port
+#  - coordinator: The network coordinator
+#  - broadcast: Send to all nodes on the network
+nodes:
+  - name: outlet
+    addr: 0013a20040d8710f
+
+# Commands that can be sent to nodes:
+commands:
+  - name: Outlet D3 Off
+    node: outlet # Name or MAC address
+    type: AT     # AT Command
+    code: D3     # Set I/O Pin 3
+    payload: 04  # Digital Output, LOW (payload is in hex)
+
+# Event handlers:
+#
+# In this example, when the "outlet" node identifies itself by
+# connecting to the network or by responding to a node discovery
+# request, send the command "Outlet D3 Off".
+events:
+  - when: Node Identification
+    node: outlet
+    send: Outlet D3 Off

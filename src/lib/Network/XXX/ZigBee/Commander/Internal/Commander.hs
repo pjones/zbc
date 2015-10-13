@@ -15,6 +15,7 @@ contained in the LICENSE file.
 module Network.XXX.ZigBee.Commander.Internal.Commander
        ( Commander
        , logger
+       , debug
        , runCommander
        , MonadIO
        , liftIO
@@ -51,6 +52,11 @@ newtype Commander m a =
 -- FIXME:
 logger :: (MonadIO m) => Text -> Commander m ()
 logger = liftIO . Text.hPutStrLn stderr
+
+--------------------------------------------------------------------------------
+-- FIXME:
+debug :: (Monad m) => Commander m () -> Commander m ()
+debug = when True
 
 --------------------------------------------------------------------------------
 runCommander :: (Monad m)
