@@ -59,7 +59,7 @@ serialThread inchan outchan = do
     waitRead  = withConnectedDevice $ \mh ->
       case mh of
         Nothing -> liftIO (threadDelay 1000000) >> waitRead
-        Just _  -> liftIO (async $ return True) -- hWaitForInput h (-1))
+        Just h  -> liftIO (async $ hWaitForInput h (-1))
 
     -- Wait for another thread to ask for frames to be written.
     waitWrite :: (MonadIO m) => Commander m (Async Z.Frame)
@@ -89,8 +89,7 @@ device = do
         then return Nothing
           else do
           -- FIXME: Guard for exceptions.
-          -- h   <- liftIO (openBinaryFile path ReadWriteMode)
-          -- liftIO (hSetBuffering h NoBuffering)
+          -- FIXME: Store serial port settings in Config.
           h <- liftIO (hOpenSerial path defaultSerialSettings)
           return . Just $ DeviceNodeState path (Right h)
 
@@ -142,7 +141,5 @@ reader = withConnectedDevice go
       return frames
 
     hexdump :: (MonadIO m) => ByteString -> Commander m ()
-    hexdump bs | ByteString.null bs = return ()
-               | otherwise          =
-                 let encoded = concatMap (printf "%02x ") (ByteString.unpack bs)
+    hexdump bs = let encoded = concatMap (printf "%02x ") (ByteString.unpack bs)
                   in logger ("read bytes: " <> Text.pack encoded)

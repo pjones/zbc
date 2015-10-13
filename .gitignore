@@ -2,3 +2,6 @@
 /cabal.sandbox.config
 /default.nix
 /dist
+/vendor/serialport/.cabal-sandbox/
+/vendor/serialport/cabal.sandbox.config
+/vendor/serialport/default.nix
