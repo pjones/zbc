@@ -8,7 +8,7 @@ config:
 # them by name in the rest of the configuration.
 #
 # There are a few pre-defined names:
-#  - localnode: The physically connected to the serial (USB) port
+#  - localnode: The node physically connected to the USB port
 #  - coordinator: The network coordinator
 #  - broadcast: Send to all nodes on the network
 nodes:
@@ -29,6 +29,6 @@ commands:
 # connecting to the network or by responding to a node discovery
 # request, send the command "Outlet D3 Off".
 events:
-  - when: Node Identification
-    node: outlet
-    send: Outlet D3 Off
+  - when: Node Identification # Event to match
+    node: outlet              # Coming from this node
+    send: Outlet D3 Off       # Respond by sending this command
