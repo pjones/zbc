@@ -12,16 +12,17 @@ contained in the LICENSE file.
 --------------------------------------------------------------------------------
 module Network.XXX.ZigBee.Commander.Node
        ( Node (..)
-       , NodeAddress (..)
+       , NodeType (..)
+       , NodeName
        , GPIOs
-       , remoteNode
+       , nodeTypeFromDeviceType
        ) where
 
 --------------------------------------------------------------------------------
 -- Package Imports:
 import Data.Map (Map)
-import qualified Data.Map as Map
 import Data.Text (Text)
+import Data.Word (Word8)
 
 --------------------------------------------------------------------------------
 -- Local Imports:
@@ -30,25 +31,25 @@ import Network.XXX.ZigBee.Commander.GPIO
 
 --------------------------------------------------------------------------------
 data Node = Node
-  { nodeAddress :: NodeAddress
+  { nodeAddress :: Address
+  , nodeType    :: NodeType
   , nodeGPIOs   :: GPIOs
   }
 
 --------------------------------------------------------------------------------
-data NodeAddress = LocalNode
-                   -- ^ FIXME:
+data NodeType = NetworkCoordinator
+              | NetworkRouter
+              | NetworkEndpoint
 
-                 | RemoteNode MAC
-                   -- ^ A node on the ZigBee network with the
-                   -- specified 'MAC' address.
+--------------------------------------------------------------------------------
+type NodeName = Text
 
 --------------------------------------------------------------------------------
 -- | Mapping between GPIO names and the GPIO value that represents them.
 type GPIOs = Map Text GPIO
 
 --------------------------------------------------------------------------------
-remoteNode :: MAC -> Node
-remoteNode mac =
-  Node { nodeAddress = RemoteNode mac
-       , nodeGPIOs   = Map.empty
-       }
+nodeTypeFromDeviceType :: Word8 -> NodeType
+nodeTypeFromDeviceType 0 = NetworkCoordinator
+nodeTypeFromDeviceType 1 = NetworkRouter
+nodeTypeFromDeviceType _ = NetworkEndpoint

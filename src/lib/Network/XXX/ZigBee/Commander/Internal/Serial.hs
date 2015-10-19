@@ -32,6 +32,7 @@ import System.IO
 
 --------------------------------------------------------------------------------
 -- Local Imports:
+import Network.XXX.ZigBee.Commander.Address
 import Network.XXX.ZigBee.Commander.Command
 import Network.XXX.ZigBee.Commander.Config
 import Network.XXX.ZigBee.Commander.Internal.Commander
@@ -89,13 +90,14 @@ device = do
           h <- liftIO (hOpenSerial path defaultSerialSettings)
           return . Just $ DeviceStatus path (Right h)
 
+    -- FIXME: Send command to get MAC address of locally connected node.
     connected :: (MonadIO m) => State -> DeviceStatus -> Commander m DeviceStatus
     connected s ns = do put s {deviceStatus = ns}
                         writer [nodeDiscovery]
                         return ns
 
     nodeDiscovery :: Z.Frame -- Send an ATND command.
-    nodeDiscovery = mkFrame 1 (AT ToLocal (78, 68) Nothing)
+    nodeDiscovery = mkFrame 1 (AT (mkATCode (78, 68)) Nothing) Local
 
 --------------------------------------------------------------------------------
 withConnectedDevice :: (MonadIO m)

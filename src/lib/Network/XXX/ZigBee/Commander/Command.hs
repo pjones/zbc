@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 {-
 
 This file is part of the zigbee-commander package. It is subject to
@@ -13,18 +15,20 @@ contained in the LICENSE file.
 module Network.XXX.ZigBee.Commander.Command
        ( Command (..)
        , mkFrame
-       , Destination (..)
        , ATCode
-       , atCode
+       , mkATCode
        , Payload
        , payload
        ) where
 
 --------------------------------------------------------------------------------
 -- Package Imports:
+import Data.Aeson
+import Data.Aeson.Types (typeMismatch)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
 import Data.Text (Text)
+import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
 import Data.Word (Word8)
 
@@ -38,44 +42,55 @@ import Network.XXX.ZigBee.Commander.Address
 
 --------------------------------------------------------------------------------
 -- | Commands that can be sent to remote devices.
-data Command = AT Destination ATCode (Maybe Payload)
-
---------------------------------------------------------------------------------
--- | Where to send commands.
-data Destination = ToNode MAC    -- ^ Send to a specific node.
-                 | ToLocal       -- ^ Send to the locally connected node.
-                 | ToCoordinator -- ^ Send to the local coordinator.
-                 | Broadcast     -- ^ Broadcast to all nodes.
-
---------------------------------------------------------------------------------
--- | Turn a destination address into a ZigBee address.
-undest :: Destination -> Z.Address
-undest (ToNode mac)  = addressFromMAC mac
-undest ToLocal       = addressFromMAC coordinator
-undest ToCoordinator = addressFromMAC coordinator
-undest Broadcast     = addressFromMAC broadcast
+data Command = AT ATCode (Maybe Payload)
 
 --------------------------------------------------------------------------------
 -- | An @ATCode@ is a two-byte code.
-type ATCode = (Word8, Word8)
-
---------------------------------------------------------------------------------
--- | Convert user generated text into a valid 'ATCode' (or not).
-atCode :: Text -> Maybe ATCode
-atCode = fromBS . Text.encodeUtf8
-  where
-    fromBS :: ByteString -> Maybe ATCode
-    fromBS bs = if ByteString.length bs == 2
-                  then Just (ByteString.head bs, ByteString.last bs)
-                  else Nothing
-
---------------------------------------------------------------------------------
-unatcode :: ATCode -> Z.CommandName
-unatcode (x, y) = Z.commandName $ map (toEnum . fromEnum) [x, y]
+newtype ATCode = ATCode (Word8, Word8)
 
 --------------------------------------------------------------------------------
 -- | Some commands require a payload to be sent with them.
 data Payload = Payload ByteString
+
+--------------------------------------------------------------------------------
+instance FromJSON Command where
+  parseJSON (Object v) = do
+    typeName <- v .: "type"
+
+    case typeName of
+      "AT" -> AT <$> v .: "code" <*> v .: "payload"
+      _    -> fail ("unknown command type: " ++ Text.unpack typeName)
+  parseJSON invalid = typeMismatch "command" invalid
+
+--------------------------------------------------------------------------------
+instance FromJSON ATCode where
+  parseJSON (String t) = case parseATCode t of
+    Just c  -> return c
+    Nothing -> fail ("invalid AT code: " ++ Text.unpack t)
+  parseJSON invalid = typeMismatch "AT code" invalid
+
+--------------------------------------------------------------------------------
+instance FromJSON Payload where
+  parseJSON (String t) = return $ Payload (Text.encodeUtf8 t)
+  parseJSON invalid = typeMismatch "AT command payload" invalid
+
+--------------------------------------------------------------------------------
+-- | Convert user generated text into a valid 'ATCode' (or not).
+parseATCode :: Text -> Maybe ATCode
+parseATCode = fromBS . Text.encodeUtf8
+  where
+    fromBS :: ByteString -> Maybe ATCode
+    fromBS bs = if ByteString.length bs == 2
+                  then Just $ ATCode (ByteString.head bs, ByteString.last bs)
+                  else Nothing
+
+--------------------------------------------------------------------------------
+mkATCode :: (Word8, Word8) -> ATCode
+mkATCode = ATCode
+
+--------------------------------------------------------------------------------
+unatcode :: ATCode -> Z.CommandName
+unatcode (ATCode (x, y)) = Z.commandName $ map (toEnum . fromEnum) [x, y]
 
 --------------------------------------------------------------------------------
 -- | Turn a 'ByteString' into a 'Payload'.
@@ -89,14 +104,14 @@ unpayload Nothing             = ByteString.empty
 unpayload (Just (Payload bs)) = bs
 
 --------------------------------------------------------------------------------
-mkFrame :: Z.FrameId -> Command -> Z.Frame
-mkFrame fid cmd =
-  case cmd of
+mkFrame :: Z.FrameId -> Command -> Address -> Z.Frame
+mkFrame fid cmd dest =
+  case (dest, cmd) of
     -- Local AT Command:
-    AT ToLocal code params ->
+    (Local, AT code params) ->
       Z.ATCommand fid (unatcode code) (unpayload params)
 
     -- Remote AT Command:
-    AT dest code params ->
-      Z.RemoteCommandRequest fid (undest dest) genericNetworkAddress 0x02
-                             (unatcode code) (unpayload params)
+    (_, AT code params) ->
+      Z.RemoteCommandRequest fid (frameAddr dest) genericNetworkAddress
+                             0x02 (unatcode code) (unpayload params)

@@ -65,7 +65,7 @@ runCommander :: (Monad m)
              -> m (Either String a)
 runCommander config cmdr = do
   result <- runEitherT $ evalRWST (unC cmdr) config
-                                  (initialState $ cDeviceFile config)
+                                  (initialState $ cDevice config)
 
   return $ case result of
     Left e       -> Left  e

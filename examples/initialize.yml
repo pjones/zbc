@@ -13,7 +13,7 @@ config:
 #  - broadcast: Send to all nodes on the network
 nodes:
   - name: outlet
-    addr: 0013a20040d8710f
+    addr: 00:13:a2:00:40:d8:71:0f
 
 # Commands that can be sent to nodes:
 commands:

@@ -16,14 +16,20 @@ module Network.XXX.ZigBee.Commander.Config
        ) where
 
 --------------------------------------------------------------------------------
+-- Local Imports:
+import Network.XXX.ZigBee.Commander.NodeTable
+
+--------------------------------------------------------------------------------
 data Config = Config
-  { cDeviceFile             :: FilePath
+  { cDevice                 :: FilePath
   , cConnectionRetryTimeout :: Int
+  , cNodeTable              :: NodeTable
   }
 
 --------------------------------------------------------------------------------
 defaultConfig :: Config
 defaultConfig =
-  Config { cDeviceFile = "/dev/ttyUSB0"
+  Config { cDevice                 = "/dev/ttyUSB0"
          , cConnectionRetryTimeout = 5
+         , cNodeTable              = defaultNodeTable
          }
