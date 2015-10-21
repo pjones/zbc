@@ -18,6 +18,7 @@ module Network.XXX.ZigBee.Commander.Internal.State
 
 --------------------------------------------------------------------------------
 -- Package Imports:
+import Data.Text (Text)
 import Data.Time.Calendar
 import Data.Time.Clock
 import qualified Network.Protocol.ZigBee.ZNet25 as Z
@@ -30,16 +31,16 @@ data State = State
   }
 
 --------------------------------------------------------------------------------
-data DeviceStatus = DeviceStatus FilePath (Either UTCTime Handle)
+data DeviceStatus = DeviceStatus Text (Either UTCTime Handle)
 
 --------------------------------------------------------------------------------
-initialState :: FilePath -> State
+initialState :: Text -> State
 initialState path = State { deviceStatus = initialDeviceState path
                           , decoderState = Z.initDecode
                           }
 
 --------------------------------------------------------------------------------
-initialDeviceState :: FilePath -> DeviceStatus
+initialDeviceState :: Text -> DeviceStatus
 initialDeviceState path = DeviceStatus path (Left initialTime)
   where
     initialTime :: UTCTime

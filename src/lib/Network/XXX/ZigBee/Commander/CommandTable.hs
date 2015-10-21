@@ -14,6 +14,7 @@ contained in the LICENSE file.
 --------------------------------------------------------------------------------
 module Network.XXX.ZigBee.Commander.CommandTable
        ( CommandTable
+       , defaultCommandTable
        , resolve
        , lookup
        ) where
@@ -34,6 +35,7 @@ import Network.XXX.ZigBee.Commander.Address
 import Network.XXX.ZigBee.Commander.Command
 import qualified Network.XXX.ZigBee.Commander.NodeTable as NodeTable
 import Network.XXX.ZigBee.Commander.NodeTable hiding (resolve, lookup)
+import Network.XXX.ZigBee.Commander.Internal.Resolve
 
 --------------------------------------------------------------------------------
 data CommandTable a = CommandTable (Map Text (a, Command))
@@ -58,8 +60,12 @@ instance (FromJSON a) => FromJSON (Entry a) where
   parseJSON invalid = typeMismatch "command table entry" invalid
 
 --------------------------------------------------------------------------------
+defaultCommandTable :: CommandTable Address
+defaultCommandTable = CommandTable Map.empty
+
+--------------------------------------------------------------------------------
 resolve :: NodeTable
-        -> CommandTable ParsedAddress
+        -> CommandTable (Unresolved Address)
         -> Either String (CommandTable Address)
 resolve nodes (CommandTable table) = CommandTable . Map.fromList <$> tryResolve
   where

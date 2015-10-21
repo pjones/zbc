@@ -15,7 +15,6 @@ contained in the LICENSE file.
 module Network.XXX.ZigBee.Commander.Address
        ( MAC
        , Address (..)
-       , ParsedAddress (..)
        , addressFromMAC
        , mkAddress
        , mkMAC
@@ -40,7 +39,7 @@ import Text.Parsec hiding ((<|>))
 import Text.Parsec.Text
 
 --------------------------------------------------------------------------------
-newtype MAC = MAC Z.Address
+newtype MAC = MAC Z.Address deriving (Show)
 
 --------------------------------------------------------------------------------
 -- | A type to represent a node's address.
@@ -58,8 +57,7 @@ data Address = Network MAC
              | Broadcast
                -- ^ Broadcast to all nodes.
 
---------------------------------------------------------------------------------
-data ParsedAddress = Unresolved Text | Resolved Address
+             deriving (Show)
 
 --------------------------------------------------------------------------------
 instance FromJSON MAC where
@@ -67,15 +65,6 @@ instance FromJSON MAC where
     Left e  -> fail e
     Right m -> return m
   parseJSON invalid = typeMismatch "MAC address" invalid
-
---------------------------------------------------------------------------------
-instance FromJSON ParsedAddress where
-  parseJSON (String t) = return $ case t of
-    "localnode"   -> Resolved Local
-    "broadcast"   -> Resolved Broadcast
-    "coordinator" -> Resolved Coordinator
-    _             -> Unresolved t
-  parseJSON invalid = typeMismatch "node address (string)" invalid
 
 --------------------------------------------------------------------------------
 addressFromMAC :: MAC -> Z.Address

@@ -29,6 +29,7 @@ commands:
 # connecting to the network or by responding to a node discovery
 # request, send the command "Outlet D3 Off".
 events:
-  - when: Node Identification # Event to match
-    node: outlet              # Coming from this node
-    send: Outlet D3 Off       # Respond by sending this command
+  - when: Node Identification  # Event to match
+    node: outlet               # Coming from this node
+    actions:                   # List of actions to perform
+      - send Outlet D3 Off     # Respond by sending this command

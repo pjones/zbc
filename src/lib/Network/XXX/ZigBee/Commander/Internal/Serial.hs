@@ -24,6 +24,7 @@ import Control.Monad.State (runState)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
 import Data.Either
+import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Time.Clock
 import qualified Network.Protocol.ZigBee.ZNet25 as Z
@@ -77,7 +78,7 @@ device = do
     DeviceStatus path (Left t) -> connect path t >>=
                                   maybe (return ns) (connected s)
   where
-    connect :: (MonadIO m) => FilePath -> UTCTime -> Commander m (Maybe DeviceStatus)
+    connect :: (MonadIO m) => Text -> UTCTime -> Commander m (Maybe DeviceStatus)
     connect path t = do
       now  <- liftIO getCurrentTime
       secs <- fromIntegral <$> asks cConnectionRetryTimeout
@@ -87,7 +88,7 @@ device = do
           else do
           -- FIXME: Guard for exceptions.
           -- FIXME: Store serial port settings in Config.
-          h <- liftIO (hOpenSerial path defaultSerialSettings)
+          h <- liftIO (hOpenSerial (Text.unpack path) defaultSerialSettings)
           return . Just $ DeviceStatus path (Right h)
 
     -- FIXME: Send command to get MAC address of locally connected node.

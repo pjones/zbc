@@ -15,26 +15,35 @@ contained in the LICENSE file.
 module Network.XXX.ZigBee.Commander.Event
        ( EventType (..)
        , EventAction (..)
-       , EventHandler (..)
+       , EventHandler' (..)
+       , EventHandler
        , Event (..)
+       , resolve
        , eventDetails
        , frameToEvent
        ) where
 
 --------------------------------------------------------------------------------
 -- Package Imports:
+import Control.Monad (void)
+import Data.Aeson
+import Data.Aeson.Types (typeMismatch)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
+import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
 import Data.Word (Word8)
 import qualified Network.Protocol.ZigBee.ZNet25 as Z
-import Network.XXX.ZigBee.Commander.Command
+import Text.Parsec hiding ((<|>))
+import Text.Parsec.Text
 
 --------------------------------------------------------------------------------
 -- Local Imports:
 import Network.XXX.ZigBee.Commander.Address
+import Network.XXX.ZigBee.Commander.Internal.Resolve
 import Network.XXX.ZigBee.Commander.Node
+import Network.XXX.ZigBee.Commander.NodeTable (NodeTable)
 
 --------------------------------------------------------------------------------
 data EventType = NodeIdentification
@@ -42,18 +51,66 @@ data EventType = NodeIdentification
                  -- a discovery request.
 
 --------------------------------------------------------------------------------
-data EventAction = SendCommand Command
+data EventAction = SendCommand Text
 
 --------------------------------------------------------------------------------
-data EventHandler = EventHandler
+data EventHandler' a = EventHandler
   { eventType    :: EventType
-  , eventNode    :: Address
+  , eventNode    :: a
   , eventActions :: [EventAction]
   }
 
 --------------------------------------------------------------------------------
+type EventHandler = EventHandler' Address
+
+--------------------------------------------------------------------------------
 data Event = JoinNotification Address NodeName NodeType
            | DiscoveryNotification Address NodeName NodeType
+           deriving (Show)
+
+--------------------------------------------------------------------------------
+instance FromJSON EventType where
+  parseJSON (String t) = case Text.toLower t of
+    "node identification" -> return NodeIdentification
+    "identification"      -> return NodeIdentification
+    _                     -> fail ("invalid event name: " ++ Text.unpack t)
+  parseJSON invalid = typeMismatch "event name" invalid
+
+--------------------------------------------------------------------------------
+instance FromJSON EventAction where
+  parseJSON (String t) =
+    case parseEventAction t of
+      Left e  -> fail e
+      Right a -> return a
+  parseJSON invalid = typeMismatch "event action" invalid
+
+--------------------------------------------------------------------------------
+instance (FromJSON a) => FromJSON (EventHandler' a) where
+  parseJSON (Object v) =
+    EventHandler <$> v .: "when"
+                 <*> v .: "node"
+                 <*> v .: "actions"
+  parseJSON invalid = typeMismatch "event handler" invalid
+
+--------------------------------------------------------------------------------
+parseEventAction :: Text -> Either String EventAction
+parseEventAction t =
+  case parse psend (Text.unpack t) t of
+    Left e  -> Left (show e)
+    Right a -> Right a
+
+  where
+    psend :: Parser EventAction
+    psend = do
+      void (string "send")
+      skipMany space
+      SendCommand . Text.pack <$> many1 anyChar <* eof
+
+--------------------------------------------------------------------------------
+resolve :: NodeTable
+        -> EventHandler' (Unresolved Address)
+        -> Either String EventHandler
+resolve = undefined
 
 --------------------------------------------------------------------------------
 -- | Gather basic details about an event.

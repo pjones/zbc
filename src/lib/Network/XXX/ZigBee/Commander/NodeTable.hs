@@ -32,6 +32,7 @@ import Prelude hiding (lookup)
 --------------------------------------------------------------------------------
 -- Local Imports:
 import Network.XXX.ZigBee.Commander.Address
+import Network.XXX.ZigBee.Commander.Internal.Resolve
 
 --------------------------------------------------------------------------------
 -- | Look-up table that maps node names to their MAC addresses.
@@ -67,9 +68,9 @@ defaultNodeTable = NodeTable $ Map.fromList
   ]
 
 --------------------------------------------------------------------------------
-resolve :: NodeTable -> ParsedAddress -> Either String Address
-resolve _   (Resolved addr)   = Right addr
-resolve tbl (Unresolved name) =
+resolve :: NodeTable -> Unresolved Address -> Either String Address
+resolve _   (UnresolvedValue v)   = Left (resolveMismatch "node name" v)
+resolve tbl (UnresolvedText name) =
   case lookup tbl name of
     Just mac -> Right (Network mac)
     Nothing  -> case parseMAC name of

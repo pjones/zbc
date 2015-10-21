@@ -40,6 +40,7 @@ data Node = Node
 data NodeType = NetworkCoordinator
               | NetworkRouter
               | NetworkEndpoint
+              deriving (Show)
 
 --------------------------------------------------------------------------------
 type NodeName = Text
