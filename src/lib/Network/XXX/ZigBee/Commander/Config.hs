@@ -26,7 +26,6 @@ import Data.Text (Text)
 
 --------------------------------------------------------------------------------
 -- Local Imports:
-import Network.XXX.ZigBee.Commander.Address
 import Network.XXX.ZigBee.Commander.CommandTable (CommandTable)
 import qualified Network.XXX.ZigBee.Commander.CommandTable as CommandTable
 import Network.XXX.ZigBee.Commander.Event (EventHandler)
@@ -39,7 +38,7 @@ data Config = Config
   { cDevice                 :: Text
   , cConnectionRetryTimeout :: Int
   , cNodeTable              :: NodeTable
-  , cCommandTable           :: CommandTable Address
+  , cCommandTable           :: CommandTable
   , cEventHandlers          :: [EventHandler]
   }
 
@@ -61,7 +60,7 @@ instance FromJSON Config where
                 Left e  -> fail e
                 Right a -> return a
 
-    Config <$> undefined -- FIXME:
+    Config <$> ((v .: "config") >>= (.: "device"))
            <*> pure (cConnectionRetryTimeout defaultConfig)
            <*> pure addrs
            <*> pure cmds'

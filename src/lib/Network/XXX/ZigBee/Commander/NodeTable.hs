@@ -69,6 +69,7 @@ defaultNodeTable = NodeTable $ Map.fromList
 
 --------------------------------------------------------------------------------
 resolve :: NodeTable -> Unresolved Address -> Either String Address
+resolve _   (Resolved a)          = Right a
 resolve _   (UnresolvedValue v)   = Left (resolveMismatch "node name" v)
 resolve tbl (UnresolvedText name) =
   case lookup tbl name of

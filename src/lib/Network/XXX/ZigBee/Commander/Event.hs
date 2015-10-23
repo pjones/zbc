@@ -30,6 +30,7 @@ import Data.Aeson
 import Data.Aeson.Types (typeMismatch)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
+import Data.Functor.Identity
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
@@ -56,12 +57,12 @@ data EventAction = SendCommand Text
 --------------------------------------------------------------------------------
 data EventHandler' a = EventHandler
   { eventType    :: EventType
-  , eventNode    :: a
+  , eventNode    :: a Address
   , eventActions :: [EventAction]
   }
 
 --------------------------------------------------------------------------------
-type EventHandler = EventHandler' Address
+type EventHandler = EventHandler' Identity
 
 --------------------------------------------------------------------------------
 data Event = JoinNotification Address NodeName NodeType
@@ -85,10 +86,10 @@ instance FromJSON EventAction where
   parseJSON invalid = typeMismatch "event action" invalid
 
 --------------------------------------------------------------------------------
-instance (FromJSON a) => FromJSON (EventHandler' a) where
+instance (FromUnresolved a) => FromJSON (EventHandler' a) where
   parseJSON (Object v) =
     EventHandler <$> v .: "when"
-                 <*> v .: "node"
+                 <*> (parseUnresolved =<< (v .: "node"))
                  <*> v .: "actions"
   parseJSON invalid = typeMismatch "event handler" invalid
 
@@ -108,7 +109,7 @@ parseEventAction t =
 
 --------------------------------------------------------------------------------
 resolve :: NodeTable
-        -> EventHandler' (Unresolved Address)
+        -> EventHandler' Unresolved
         -> Either String EventHandler
 resolve = undefined
 

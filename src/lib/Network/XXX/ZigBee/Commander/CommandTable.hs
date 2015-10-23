@@ -20,9 +20,11 @@ module Network.XXX.ZigBee.Commander.CommandTable
        ) where
 
 --------------------------------------------------------------------------------
+import Control.Arrow (first)
 import Control.Monad (forM)
 import Data.Aeson
 import Data.Aeson.Types (typeMismatch)
+import Data.Functor.Identity
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Text (Text)
@@ -38,43 +40,44 @@ import Network.XXX.ZigBee.Commander.NodeTable hiding (resolve, lookup)
 import Network.XXX.ZigBee.Commander.Internal.Resolve
 
 --------------------------------------------------------------------------------
-data CommandTable a = CommandTable (Map Text (a, Command))
+data CommandTable' a = CommandTable (Map Text (a Address, Command))
+type CommandTable = CommandTable' Identity
 
 --------------------------------------------------------------------------------
-newtype Entry a = Entry { unEntry :: (Text, (a, Command)) }
+newtype Entry a = Entry { unEntry :: (Text, (a Address, Command)) }
 
 --------------------------------------------------------------------------------
-instance (FromJSON a) => FromJSON (CommandTable a) where
+instance (FromUnresolved a) => FromJSON (CommandTable' a) where
   parseJSON (Array a) = do
     entries <- mapM parseJSON (Vector.toList a)
     return . CommandTable $ Map.fromList (map unEntry entries)
   parseJSON invalid = typeMismatch "command table" invalid
 
 --------------------------------------------------------------------------------
-instance (FromJSON a) => FromJSON (Entry a) where
+instance (FromUnresolved a) => FromJSON (Entry a) where
   parseJSON o@(Object v) = do
     name <- v .: "name"
-    addr <- v .: "node"
+    addr <- parseUnresolved =<< (v .: "node")
     cmd  <- parseJSON o
     return $ Entry (name, (addr, cmd))
   parseJSON invalid = typeMismatch "command table entry" invalid
 
 --------------------------------------------------------------------------------
-defaultCommandTable :: CommandTable Address
+defaultCommandTable :: CommandTable
 defaultCommandTable = CommandTable Map.empty
 
 --------------------------------------------------------------------------------
 resolve :: NodeTable
-        -> CommandTable (Unresolved Address)
-        -> Either String (CommandTable Address)
+        -> CommandTable' Unresolved
+        -> Either String CommandTable
 resolve nodes (CommandTable table) = CommandTable . Map.fromList <$> tryResolve
   where
-    tryResolve :: Either String [(Text, (Address, Command))]
+    tryResolve :: Either String [(Text, (Identity Address, Command))]
     tryResolve =
       forM (Map.assocs table) $ \(name, (unresolved, command)) -> do
         addr <- NodeTable.resolve nodes unresolved
-        return (name, (addr, command))
+        return (name, (Identity addr, command))
 
 --------------------------------------------------------------------------------
-lookup :: CommandTable a -> Text -> Maybe (a, Command)
-lookup (CommandTable m) key = Map.lookup key m
+lookup :: CommandTable -> Text -> Maybe (Address, Command)
+lookup (CommandTable m) key = first runIdentity <$>  Map.lookup key m

@@ -67,6 +67,10 @@ instance FromJSON MAC where
   parseJSON invalid = typeMismatch "MAC address" invalid
 
 --------------------------------------------------------------------------------
+instance FromJSON Address where
+  parseJSON s = Network <$> parseJSON s
+
+--------------------------------------------------------------------------------
 addressFromMAC :: MAC -> Z.Address
 addressFromMAC (MAC addr) = addr
 
