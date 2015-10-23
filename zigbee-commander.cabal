@@ -51,6 +51,7 @@ library
     Network.XXX.ZigBee.Commander.Node
     Network.XXX.ZigBee.Commander.NodeTable
     Network.XXX.ZigBee.Commander.Internal.Resolve
+    Network.XXX.ZigBee.Commander.Internal.Dispatch
 
   other-modules:
 

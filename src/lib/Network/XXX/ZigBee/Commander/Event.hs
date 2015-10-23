@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 
 {-
 
@@ -20,6 +20,7 @@ module Network.XXX.ZigBee.Commander.Event
        , Event (..)
        , resolve
        , eventDetails
+       , eventHandlers
        , frameToEvent
        ) where
 
@@ -50,6 +51,8 @@ import Network.XXX.ZigBee.Commander.NodeTable (NodeTable)
 data EventType = NodeIdentification
                  -- ^ A node has joined the network or responded to
                  -- a discovery request.
+
+               deriving (Show, Eq)
 
 --------------------------------------------------------------------------------
 data EventAction = SendCommand Text
@@ -118,6 +121,17 @@ resolve = undefined
 eventDetails :: Event -> (Address, EventType)
 eventDetails (JoinNotification a _ _)      = (a, NodeIdentification)
 eventDetails (DiscoveryNotification a _ _) = (a, NodeIdentification)
+
+--------------------------------------------------------------------------------
+-- | Filter the list of event handlers so it only contains those that
+-- match the specified event.
+eventHandlers :: Event -> [EventHandler] -> [EventHandler]
+eventHandlers event = filter (go $ eventDetails event)
+  where
+    go :: (Address, EventType) -> EventHandler -> Bool
+    go (addr, etype) (EventHandler {..}) =
+      eventType == etype &&
+      runIdentity eventNode == addr
 
 --------------------------------------------------------------------------------
 frameToEvent :: Z.Frame -> Maybe Event

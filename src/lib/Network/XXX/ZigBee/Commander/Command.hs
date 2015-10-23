@@ -104,8 +104,8 @@ unpayload Nothing             = ByteString.empty
 unpayload (Just (Payload bs)) = bs
 
 --------------------------------------------------------------------------------
-mkFrame :: Z.FrameId -> Command -> Address -> Z.Frame
-mkFrame fid cmd dest =
+mkFrame :: Z.FrameId -> Address -> Command -> Z.Frame
+mkFrame fid dest cmd =
   case (dest, cmd) of
     -- Local AT Command:
     (Local, AT code params) ->

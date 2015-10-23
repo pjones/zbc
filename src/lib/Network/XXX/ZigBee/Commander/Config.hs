@@ -15,6 +15,7 @@ contained in the LICENSE file.
 module Network.XXX.ZigBee.Commander.Config
        ( Config (..)
        , defaultConfig
+       , readConfigFile
        ) where
 
 --------------------------------------------------------------------------------
@@ -23,6 +24,7 @@ import Control.Monad (forM)
 import Data.Aeson
 import Data.Aeson.Types (typeMismatch)
 import Data.Text (Text)
+import qualified Data.Yaml as YAML
 
 --------------------------------------------------------------------------------
 -- Local Imports:
@@ -77,3 +79,12 @@ defaultConfig =
          , cCommandTable           = CommandTable.defaultCommandTable
          , cEventHandlers          = []
          }
+
+--------------------------------------------------------------------------------
+readConfigFile :: FilePath -> IO (Either String Config)
+readConfigFile path = do
+  result <- YAML.decodeFileEither path
+
+  return $ case result of
+    Left e  -> Left (show e)
+    Right a -> Right a

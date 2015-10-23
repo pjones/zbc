@@ -16,6 +16,7 @@ module Network.XXX.ZigBee.Commander.Internal.Commander
        ( Commander
        , logger
        , debug
+       , nextFrameID
        , runCommander
        , MonadIO
        , liftIO
@@ -34,6 +35,7 @@ import Control.Monad.RWS
 import Control.Monad.Trans.Either
 import Data.Text (Text)
 import qualified Data.Text.IO as Text
+import qualified Network.Protocol.ZigBee.ZNet25 as Z
 import System.IO
 
 --------------------------------------------------------------------------------
@@ -57,6 +59,18 @@ logger = liftIO . Text.hPutStrLn stderr
 -- FIXME:
 debug :: (Monad m) => Commander m () -> Commander m ()
 debug = when True
+
+--------------------------------------------------------------------------------
+nextFrameID :: (Monad m) => Commander m Z.FrameId
+nextFrameID = do
+  s <- get
+
+  let fid = if frameID s == maxBound
+              then 1
+              else frameID s + 1
+
+  put s {frameID = fid}
+  return fid
 
 --------------------------------------------------------------------------------
 runCommander :: (Monad m)

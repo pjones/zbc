@@ -28,6 +28,7 @@ import System.IO
 data State = State
   { deviceStatus :: DeviceStatus
   , decoderState :: Z.DecoderState
+  , frameID      :: Z.FrameId
   }
 
 --------------------------------------------------------------------------------
@@ -37,6 +38,7 @@ data DeviceStatus = DeviceStatus Text (Either UTCTime Handle)
 initialState :: Text -> State
 initialState path = State { deviceStatus = initialDeviceState path
                           , decoderState = Z.initDecode
+                          , frameID      = 0
                           }
 
 --------------------------------------------------------------------------------

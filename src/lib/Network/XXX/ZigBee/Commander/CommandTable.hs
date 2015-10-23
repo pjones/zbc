@@ -17,9 +17,11 @@ module Network.XXX.ZigBee.Commander.CommandTable
        , defaultCommandTable
        , resolve
        , lookup
+       , lookupFrame
        ) where
 
 --------------------------------------------------------------------------------
+-- Package Imports:
 import Control.Arrow (first)
 import Control.Monad (forM)
 import Data.Aeson
@@ -29,6 +31,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Text (Text)
 import qualified Data.Vector as Vector
+import qualified Network.Protocol.ZigBee.ZNet25 as Z
 import Prelude hiding (lookup)
 
 --------------------------------------------------------------------------------
@@ -81,3 +84,7 @@ resolve nodes (CommandTable table) = CommandTable . Map.fromList <$> tryResolve
 --------------------------------------------------------------------------------
 lookup :: CommandTable -> Text -> Maybe (Address, Command)
 lookup (CommandTable m) key = first runIdentity <$>  Map.lookup key m
+
+--------------------------------------------------------------------------------
+lookupFrame :: CommandTable -> Z.FrameId -> Text -> Maybe Z.Frame
+lookupFrame cmds fid name = uncurry (mkFrame fid) <$> lookup cmds name

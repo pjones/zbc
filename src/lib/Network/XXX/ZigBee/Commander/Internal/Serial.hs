@@ -93,12 +93,13 @@ device = do
 
     -- FIXME: Send command to get MAC address of locally connected node.
     connected :: (MonadIO m) => State -> DeviceStatus -> Commander m DeviceStatus
-    connected s ns = do put s {deviceStatus = ns}
-                        writer [nodeDiscovery]
+    connected s ns = do fid <- nextFrameID
+                        put s {deviceStatus = ns}
+                        writer [nodeDiscovery fid]
                         return ns
 
-    nodeDiscovery :: Z.Frame -- Send an ATND command.
-    nodeDiscovery = mkFrame 1 (AT (mkATCode (78, 68)) Nothing) Local
+    nodeDiscovery :: Z.FrameId -> Z.Frame -- Send an ATND command.
+    nodeDiscovery fid = mkFrame fid Local (AT (mkATCode (78, 68)) Nothing)
 
 --------------------------------------------------------------------------------
 withConnectedDevice :: (MonadIO m)

@@ -39,7 +39,7 @@ import Text.Parsec hiding ((<|>))
 import Text.Parsec.Text
 
 --------------------------------------------------------------------------------
-newtype MAC = MAC Z.Address deriving (Show)
+newtype MAC = MAC Z.Address deriving (Show, Eq)
 
 --------------------------------------------------------------------------------
 -- | A type to represent a node's address.
@@ -69,6 +69,15 @@ instance FromJSON MAC where
 --------------------------------------------------------------------------------
 instance FromJSON Address where
   parseJSON s = Network <$> parseJSON s
+
+--------------------------------------------------------------------------------
+instance Eq Address where
+  (Network x) == (Network y) = x == y
+  Local       == Local       = True
+  Coordinator == Coordinator = True
+  Broadcast   == _           = True
+  _           == Broadcast   = True
+  _           == _           = False
 
 --------------------------------------------------------------------------------
 addressFromMAC :: MAC -> Z.Address
