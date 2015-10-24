@@ -51,5 +51,6 @@ instance FromUnresolved Unresolved where
     pure (UnresolvedValue invalid)
 
 --------------------------------------------------------------------------------
+-- | FIXME: actually produce a real error
 resolveMismatch :: String -> Value -> String
-resolveMismatch = undefined
+resolveMismatch x _ = x

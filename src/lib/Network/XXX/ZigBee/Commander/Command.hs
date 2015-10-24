@@ -24,13 +24,15 @@ module Network.XXX.ZigBee.Commander.Command
 --------------------------------------------------------------------------------
 -- Package Imports:
 import Data.Aeson
-import Data.Aeson.Types (typeMismatch)
+import Data.Aeson.Types (Parser, typeMismatch)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
+import Data.Char (chr)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
 import Data.Word (Word8)
+import Numeric (readHex)
 
 --------------------------------------------------------------------------------
 -- Package Imports:
@@ -43,14 +45,17 @@ import Network.XXX.ZigBee.Commander.Address
 --------------------------------------------------------------------------------
 -- | Commands that can be sent to remote devices.
 data Command = AT ATCode (Maybe Payload)
+               deriving (Show)
 
 --------------------------------------------------------------------------------
 -- | An @ATCode@ is a two-byte code.
 newtype ATCode = ATCode (Word8, Word8)
+               deriving (Show)
 
 --------------------------------------------------------------------------------
 -- | Some commands require a payload to be sent with them.
 data Payload = Payload ByteString
+               deriving (Show)
 
 --------------------------------------------------------------------------------
 instance FromJSON Command where
@@ -58,8 +63,24 @@ instance FromJSON Command where
     typeName <- v .: "type"
 
     case typeName of
-      "AT" -> AT <$> v .: "code" <*> v .: "payload"
+      "AT" -> AT <$> v .: "code" <*> (decodePayload =<< v .: "payload")
       _    -> fail ("unknown command type: " ++ Text.unpack typeName)
+
+    where
+      -- FIXME: remove Maybe
+      decodePayload :: Maybe Payload -> Parser (Maybe Payload)
+      decodePayload Nothing   = return Nothing
+      decodePayload (Just (Payload bs)) = do
+        let bytes = ByteString.unpack bs
+        decoded <- mapM decodeHexByte bytes
+        return (Just . Payload $ ByteString.pack decoded)
+
+      decodeHexByte :: Word8 -> Parser Word8
+      decodeHexByte byte = case readHex [chr $ fromIntegral byte] of
+        [(x, _)] -> return x
+        _        -> fail ("invalid byte in command payload: " ++ [chr (fromIntegral byte)])
+
+
   parseJSON invalid = typeMismatch "command" invalid
 
 --------------------------------------------------------------------------------

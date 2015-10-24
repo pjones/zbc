@@ -46,6 +46,7 @@ import Network.XXX.ZigBee.Commander.Address
 import Network.XXX.ZigBee.Commander.Internal.Resolve
 import Network.XXX.ZigBee.Commander.Node
 import Network.XXX.ZigBee.Commander.NodeTable (NodeTable)
+import qualified Network.XXX.ZigBee.Commander.NodeTable as NodeTable
 
 --------------------------------------------------------------------------------
 data EventType = NodeIdentification
@@ -114,7 +115,10 @@ parseEventAction t =
 resolve :: NodeTable
         -> EventHandler' Unresolved
         -> Either String EventHandler
-resolve = undefined
+resolve nodes EventHandler {..} =
+  EventHandler <$> pure eventType
+               <*> (Identity <$> NodeTable.resolve nodes eventNode)
+               <*> pure eventActions
 
 --------------------------------------------------------------------------------
 -- | Gather basic details about an event.

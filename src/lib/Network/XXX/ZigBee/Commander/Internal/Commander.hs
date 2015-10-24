@@ -15,40 +15,38 @@ contained in the LICENSE file.
 module Network.XXX.ZigBee.Commander.Internal.Commander
        ( Commander
        , logger
+       , loggerS
        , debug
        , nextFrameID
+       , spawn
        , runCommander
        , MonadIO
        , liftIO
        , ask
        , asks
-       , get
-       , gets
-       , put
-       , modify
-       , modify'
        ) where
 
 --------------------------------------------------------------------------------
 -- Package Imports:
-import Control.Monad.RWS
+import Control.Concurrent.Async
+import Control.Concurrent.STM
+import Control.Monad.Reader
 import Control.Monad.Trans.Either
 import Data.Text (Text)
+import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import qualified Network.Protocol.ZigBee.ZNet25 as Z
 import System.IO
 
 --------------------------------------------------------------------------------
 -- Local Imports:
-import Network.XXX.ZigBee.Commander.Config
+import Network.XXX.ZigBee.Commander.Internal.Environment
 import Network.XXX.ZigBee.Commander.Internal.State
 
 --------------------------------------------------------------------------------
 newtype Commander m a =
-  Commander {unC :: RWST Config () State (EitherT String m) a}
-  deriving ( Functor, Applicative, Monad, MonadIO
-           , MonadReader Config, MonadState State
-           )
+  Commander {unC :: ReaderT Environment (EitherT String m) a}
+  deriving (Functor, Applicative, Monad, MonadIO, MonadReader Environment)
 
 --------------------------------------------------------------------------------
 -- FIXME:
@@ -56,31 +54,41 @@ logger :: (MonadIO m) => Text -> Commander m ()
 logger = liftIO . Text.hPutStrLn stderr
 
 --------------------------------------------------------------------------------
+loggerS :: (MonadIO m) => String -> Commander m ()
+loggerS = logger . Text.pack
+
+--------------------------------------------------------------------------------
 -- FIXME:
 debug :: (Monad m) => Commander m () -> Commander m ()
 debug = when True
 
 --------------------------------------------------------------------------------
-nextFrameID :: (Monad m) => Commander m Z.FrameId
+nextFrameID :: (MonadIO m) => Commander m Z.FrameId
 nextFrameID = do
-  s <- get
+  stateVar <- asks state
 
-  let fid = if frameID s == maxBound
-              then 1
-              else frameID s + 1
+  liftIO . atomically $ do
+    s <- readTVar stateVar
 
-  put s {frameID = fid}
-  return fid
+    let fid = if frameID s == maxBound
+                then 1
+                else frameID s + 1
+
+    writeTVar stateVar s {frameID = fid}
+    return fid
+
+--------------------------------------------------------------------------------
+spawn :: Commander IO a -> Commander IO (Async (Either String a))
+spawn action = liftIO . async . flip runCommander action =<< ask
 
 --------------------------------------------------------------------------------
 runCommander :: (Monad m)
-             => Config
+             => Environment
              -> Commander m a
              -> m (Either String a)
-runCommander config cmdr = do
-  result <- runEitherT $ evalRWST (unC cmdr) config
-                                  (initialState $ cDevice config)
+runCommander env cmdr = do
+  result <- runEitherT $ runReaderT (unC cmdr) env
 
   return $ case result of
-    Left e       -> Left  e
-    Right (a, _) -> Right a
+    Left  e -> Left  e
+    Right a -> Right a

@@ -16,8 +16,8 @@ module Network.XXX.ZigBee.Commander.Internal.Dispatch
 
 --------------------------------------------------------------------------------
 -- Package Imports:
-import Data.Maybe
-import qualified Network.Protocol.ZigBee.ZNet25 as Z
+import Control.Concurrent
+import Control.Monad (forever, void)
 
 --------------------------------------------------------------------------------
 -- Local Imports:
@@ -25,26 +25,34 @@ import qualified Network.XXX.ZigBee.Commander.CommandTable as CommandTable
 import Network.XXX.ZigBee.Commander.Config
 import Network.XXX.ZigBee.Commander.Event
 import Network.XXX.ZigBee.Commander.Internal.Commander
+import Network.XXX.ZigBee.Commander.Internal.Environment
 
 --------------------------------------------------------------------------------
-dispatch :: (Monad m) => Z.Frame -> Commander m [Z.Frame]
-dispatch = go . frameToEvent
-  where
-    ----------------------------------------------------------------------------
-    go :: (Monad m) => Maybe Event -> Commander m [Z.Frame]
-    go Nothing      = return []
-    go (Just event) = do
-      as <- concatMap eventActions <$> handlers event
-      concat <$> mapM action as
+dispatch :: Commander IO ()
+dispatch = forever go where
 
-    ----------------------------------------------------------------------------
-    handlers :: (Monad m) => Event -> Commander m [EventHandler]
-    handlers event = eventHandlers event . cEventHandlers <$> ask
+  ------------------------------------------------------------------------------
+  go :: Commander IO ()
+  go = do
+    event <- asks events >>= liftIO . readChan
+    void $ spawn (handleEvent event)
 
-    ----------------------------------------------------------------------------
-    action :: (Monad m) => EventAction -> Commander m [Z.Frame]
-    action ea = case ea of
-      SendCommand name ->
-        do cmds <- asks cCommandTable
-           fid  <- nextFrameID
-           return (maybeToList $ CommandTable.lookupFrame cmds fid name)
+  ------------------------------------------------------------------------------
+  handleEvent :: Event -> Commander IO ()
+  handleEvent event = do
+    as <- concatMap eventActions <$> handlers event
+    mapM_ action as
+
+  ----------------------------------------------------------------------------
+  handlers :: (Monad m) => Event -> Commander m [EventHandler]
+  handlers event = eventHandlers event . cEventHandlers <$> asks config
+
+  ----------------------------------------------------------------------------
+  action :: (MonadIO m) => EventAction -> Commander m ()
+  action ea = case ea of
+    SendCommand name ->
+      do cmds <- asks (cCommandTable . config)
+         case CommandTable.lookup cmds name of
+           Nothing  -> return ()
+           Just cmd -> asks commands >>= \chan ->
+                       liftIO (writeChan chan cmd)

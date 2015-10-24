@@ -16,40 +16,30 @@ module Network.XXX.ZigBee.Commander.Internal.Main
 
 --------------------------------------------------------------------------------
 -- Package Imports:
-import Control.Concurrent
 import Control.Concurrent.Async
-import Control.Monad (forever, void)
-import qualified Network.Protocol.ZigBee.ZNet25 as Z
-import System.IO
+import Control.Monad (void)
+import System.Environment
 
 --------------------------------------------------------------------------------
 -- Local Imports:
 import Network.XXX.ZigBee.Commander.Config
 import Network.XXX.ZigBee.Commander.Internal.Commander
 import Network.XXX.ZigBee.Commander.Internal.Dispatch
+import Network.XXX.ZigBee.Commander.Internal.Environment
 import Network.XXX.ZigBee.Commander.Internal.Serial
 
 --------------------------------------------------------------------------------
 commanderMain :: IO ()
 commanderMain = do
-  inchan  <- newChan
-  outchan <- newChan
-  let config = defaultConfig
+  (x:_)   <- getArgs
+  configM <- readConfigFile x
 
-  serialIOThread <- async (serialIO config inchan outchan)
-  dispatchThread <- async (dispatchLoop config inchan outchan)
+  env <- case configM of
+           Left e  -> fail e
+           Right a -> newEnvironment a
+
+  serialIOThread <- async (void $ runCommander env serialThread)
+  dispatchThread <- async (void $ runCommander env dispatch)
 
   wait dispatchThread
   cancel serialIOThread
-
-  where
-    serialIO :: Config -> Chan Z.Frame -> Chan Z.Frame -> IO ()
-    serialIO config inchan outchan =
-      void $ runCommander config $ forever (serialThread inchan outchan)
-
-    dispatchLoop :: Config -> Chan Z.Frame -> Chan Z.Frame -> IO ()
-    dispatchLoop config inchan outchan = void $ runCommander config $ forever $ do
-      incoming <- liftIO (readChan outchan)
-      liftIO (hPrint stderr incoming) -- FIXME:
-      outgoing <- dispatch incoming
-      liftIO (writeList2Chan inchan outgoing)
