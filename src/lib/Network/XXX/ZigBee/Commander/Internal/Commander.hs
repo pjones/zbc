@@ -18,6 +18,8 @@ module Network.XXX.ZigBee.Commander.Internal.Commander
        , loggerS
        , debug
        , nextFrameID
+       , isMuted
+       , mute
        , spawn
        , runCommander
        , MonadIO
@@ -32,16 +34,23 @@ import Control.Concurrent.Async
 import Control.Concurrent.STM
 import Control.Monad.Reader
 import Control.Monad.Trans.Either
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
+import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
+import Data.Time.Clock
+import Data.Time.Format
 import qualified Network.Protocol.ZigBee.ZNet25 as Z
 import System.IO
 
 --------------------------------------------------------------------------------
 -- Local Imports:
+import Network.XXX.ZigBee.Commander.Address
 import Network.XXX.ZigBee.Commander.Internal.Environment
 import Network.XXX.ZigBee.Commander.Internal.State
+import Network.XXX.ZigBee.Commander.Node
 
 --------------------------------------------------------------------------------
 newtype Commander m a =
@@ -76,6 +85,48 @@ nextFrameID = do
 
     writeTVar stateVar s {frameID = fid}
     return fid
+
+--------------------------------------------------------------------------------
+-- | Returns true if the node with the given address is muted.
+isMuted :: (MonadIO m) => Address -> Commander m Bool
+isMuted addr = do
+  stateVar <- asks state
+  table    <- nodeStatus <$> liftIO (atomically $ readTVar stateVar)
+
+  case nodeMutedUntil =<< Map.lookup addr table of
+    Nothing -> return False
+    Just t  -> (t >) <$> liftIO getCurrentTime
+
+--------------------------------------------------------------------------------
+-- | Mark a node as muted.
+mute :: (MonadIO m) => Address -> Int -> Commander m ()
+mute addr msecs = do
+    stateVar <- asks state
+    now <- liftIO getCurrentTime
+    let time = addUTCTime mkndt now
+
+    liftIO . atomically . modifyTVar stateVar $ \s ->
+      let table  = nodeStatus s
+          table' = setNode time (getNode table) table
+      in s {nodeStatus = table'}
+
+    debug $
+      let locale = defaultTimeLocale
+          format = "%H:%M:%S"
+      in loggerS $ show addr ++ " is muted until " ++ formatTime locale format time
+
+  where
+    mkndt :: NominalDiffTime
+    mkndt = realToFrac . picosecondsToDiffTime . fromIntegral $ (msecs * 1000000000)
+
+    getNode :: Map Address Node -> Node
+    getNode table = fromMaybe (newNode addr) (Map.lookup addr table)
+
+    setNode :: UTCTime -> Node -> Map Address Node -> Map Address Node
+    setNode t node = Map.insert addr (setMuted t node)
+
+    setMuted :: UTCTime -> Node -> Node
+    setMuted t node = node { nodeMutedUntil = Just t }
 
 --------------------------------------------------------------------------------
 spawn :: Commander IO a -> Commander IO (Async (Either String a))

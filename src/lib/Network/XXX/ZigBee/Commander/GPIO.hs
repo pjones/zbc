@@ -12,22 +12,26 @@ contained in the LICENSE file.
 --------------------------------------------------------------------------------
 module Network.XXX.ZigBee.Commander.GPIO
        ( GPIO (..)
-       , PortState (..)
+       , DigitalState (..)
+       , PinState (..)
+       , PinID
        ) where
 
 --------------------------------------------------------------------------------
--- Package Imports:
-import Data.ByteString (ByteString)
+data DigitalState = DigitalLow | DigitalHigh deriving (Show, Eq, Enum)
+
+--------------------------------------------------------------------------------
+type PinID = Int
 
 --------------------------------------------------------------------------------
 data GPIO = GPIO
-  { gpioName  :: ByteString
-  , gpioState :: PortState
+  { gpioName  :: PinID
+  , gpioState :: PinState
   }
 
 --------------------------------------------------------------------------------
-data PortState = Disabled
-               | DigitalInput
-               | DigitalOutput
-               | AnalogInput
-               | SpecialPurpose
+data PinState = Disabled
+              | DigitalInput
+              | DigitalOutput
+              | AnalogInput
+              | SpecialPurpose

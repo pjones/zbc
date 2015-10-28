@@ -1,0 +1,83 @@
+################################################################################
+# Configuration for running all of my Halloween props.
+
+# General configuration options:
+config:
+  device: /dev/ttyUSB0
+
+# Node name to address table:
+nodes:
+  - name: outlet
+    addr: 00:13:a2:00:40:e6:e9:60
+
+  - name: picofx
+    addr: 00:13:a2:00:40:d8:71:0d
+
+  - name: irbeam
+    addr: 00:13:a2:00:40:d8:71:3b
+
+# Commands that can be sent to nodes:
+commands:
+  - name: Lights On
+    node: outlet
+    type: AT
+    code: D3
+    payload: "5"
+
+  - name: Lights Off
+    node: outlet
+    type: AT
+    code: D3
+    payload: "4"
+
+  - name: Blacklights On
+    node: outlet
+    type: AT
+    code: D4
+    payload: "5"
+
+  - name: Blacklights Off
+    node: outlet
+    type: AT
+    code: D4
+    payload: "4"
+
+  - name: Music
+    node: picofx
+    type: AT
+    code: D4
+    payload: "4"
+
+  - name: Storm
+    node: picofx
+    type: AT
+    code: D4
+    payload: "5"
+
+# Event handlers:
+events:
+  - when: Node Identification
+    node: outlet
+    actions:
+      - send Lights On
+      - send Blacklights Off
+
+  - when: Node Identification
+    node: picofx
+    actions:
+      - send Music
+
+  - when: Digital Sample
+    with: D0 Low
+    node: irbeam
+    actions:
+      - skip muted
+      - mute 60000
+      - send Lights Off
+      - send Storm
+      - wait 10000
+      - send Blacklights On
+      - wait 19000
+      - send Music
+      - send Blacklights Off
+      - send Lights On

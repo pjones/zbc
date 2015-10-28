@@ -38,7 +38,7 @@ import Text.Parsec hiding ((<|>))
 import Text.Parsec.Text
 
 --------------------------------------------------------------------------------
-newtype MAC = MAC {addressFromMAC :: Z.Address} deriving (Eq)
+newtype MAC = MAC {addressFromMAC :: Z.Address} deriving (Eq, Ord)
 
 --------------------------------------------------------------------------------
 -- | A type to represent a node's address.
@@ -56,7 +56,7 @@ data Address = Network MAC
              | Broadcast
                -- ^ Broadcast to all nodes.
 
-             deriving (Show)
+             deriving (Show, Ord)
 
 --------------------------------------------------------------------------------
 instance Show MAC where

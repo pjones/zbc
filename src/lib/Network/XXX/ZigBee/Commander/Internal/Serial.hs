@@ -26,7 +26,6 @@ import Control.Monad.State (runState)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
 import Data.Either
-import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Time.Clock
@@ -125,8 +124,6 @@ writer (addr, cmd) = withConnectedDevice go
              loggerS ("     to address: " ++ show addr))
 
       fid <- nextFrameID
-      let frame = mkFrame fid addr cmd
-      loggerS (show frame)
       write h (Z.encode $ mkFrame fid addr cmd)
 
     -- FIXME: add support for hPutNonBlocking by maintaining a write
@@ -146,15 +143,16 @@ reader = withConnectedDevice go
     go (Just h) = do
       ds <- decoderState <$> (asks state >>= liftIO . atomically . readTVar)
       bs <- liftIO (ByteString.hGetSome h 1024)
-      debug (hexdump "read bytes: " bs)
+      -- debug (hexdump "read bytes: " bs)
 
       let (results, decoderState') = runState (Z.decode bs) ds
           (errors,  frames)        = partitionEithers results
-          readEvents               = mapMaybe frameToEvent frames
+          readEvents               = concatMap frameToEvent frames
 
       updateDecoder decoderState'
       mapM_ (logger . Text.pack) errors
-      debug (mapM_ (logger .  Text.pack . show) readEvents)
+      debug (mapM_ (logger . Text.pack . show) frames)
+      debug (mapM_ (logger . Text.pack . show) readEvents)
       return readEvents
 
     updateDecoder :: (MonadIO m) => Z.DecoderState -> Commander m ()

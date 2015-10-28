@@ -18,6 +18,8 @@ module Network.XXX.ZigBee.Commander.Internal.State
 
 --------------------------------------------------------------------------------
 -- Package Imports:
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import Data.Time.Calendar
 import Data.Time.Clock
@@ -25,10 +27,16 @@ import qualified Network.Protocol.ZigBee.ZNet25 as Z
 import System.IO
 
 --------------------------------------------------------------------------------
+-- Local Imports:
+import Network.XXX.ZigBee.Commander.Address
+import Network.XXX.ZigBee.Commander.Node
+
+--------------------------------------------------------------------------------
 data State = State
   { deviceStatus :: DeviceStatus
   , decoderState :: Z.DecoderState
   , frameID      :: Z.FrameId
+  , nodeStatus   :: Map Address Node
   }
 
 --------------------------------------------------------------------------------
@@ -39,6 +47,7 @@ initialState :: Text -> State
 initialState path = State { deviceStatus = initialDeviceState path
                           , decoderState = Z.initDecode
                           , frameID      = 0
+                          , nodeStatus   = Map.empty
                           }
 
 --------------------------------------------------------------------------------

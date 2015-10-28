@@ -17,7 +17,7 @@ module Network.XXX.ZigBee.Commander.Internal.Dispatch
 --------------------------------------------------------------------------------
 -- Package Imports:
 import Control.Concurrent
-import Control.Monad (forever, void)
+import Control.Monad (forever, void, when)
 
 --------------------------------------------------------------------------------
 -- Local Imports:
@@ -41,18 +41,39 @@ dispatch = forever go where
   handleEvent :: Event -> Commander IO ()
   handleEvent event = do
     as <- concatMap eventActions <$> handlers event
-    mapM_ action as
+    runWhileTrue event as
+
+  ------------------------------------------------------------------------------
+  runWhileTrue :: Event -> [EventAction] -> Commander IO ()
+  runWhileTrue _     []     = return ()
+  runWhileTrue event (a:as) = do
+    bool <- action event a
+    when bool (runWhileTrue event as)
 
   ----------------------------------------------------------------------------
   handlers :: (Monad m) => Event -> Commander m [EventHandler]
   handlers event = eventHandlers event . cEventHandlers <$> asks config
 
   ----------------------------------------------------------------------------
-  action :: (MonadIO m) => EventAction -> Commander m ()
-  action ea = case ea of
+  action :: (MonadIO m) => Event -> EventAction -> Commander m Bool
+  action event ea = case ea of
     SendCommand name ->
       do cmds <- asks (cCommandTable . config)
          case CommandTable.lookup cmds name of
            Nothing  -> return ()
            Just cmd -> asks commands >>= \chan ->
                        liftIO (writeChan chan cmd)
+         return True
+
+    Wait delay -> do
+      debug (loggerS $ "waiting: " ++ show delay)
+      liftIO (threadDelay $ delay * 1000)
+      return True
+
+    Mute delay -> do
+      -- Mute a node for the given number of milliseconds.
+      mute (fst $ eventDetails event) delay
+      return True
+
+    Skip SkipMuted ->
+      not <$> isMuted (fst $ eventDetails event)

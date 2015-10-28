@@ -23,8 +23,8 @@ module Network.XXX.ZigBee.Commander.NodeTable
 -- Package Imports:
 import Data.Aeson
 import Data.Aeson.Types (typeMismatch)
-import Data.Map (Map)
-import qualified Data.Map as Map
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import qualified Data.Vector as Vector
 import Prelude hiding (lookup)

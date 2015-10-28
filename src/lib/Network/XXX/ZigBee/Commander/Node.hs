@@ -15,13 +15,16 @@ module Network.XXX.ZigBee.Commander.Node
        , NodeType (..)
        , NodeName
        , GPIOs
+       , newNode
        , nodeTypeFromDeviceType
        ) where
 
 --------------------------------------------------------------------------------
 -- Package Imports:
-import Data.Map (Map)
+import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import Data.Text (Text)
+import Data.Time.Clock
 import Data.Word (Word8)
 
 --------------------------------------------------------------------------------
@@ -31,9 +34,10 @@ import Network.XXX.ZigBee.Commander.GPIO
 
 --------------------------------------------------------------------------------
 data Node = Node
-  { nodeAddress :: Address
-  , nodeType    :: NodeType
-  , nodeGPIOs   :: GPIOs
+  { nodeAddress    :: Address
+  , nodeType       :: NodeType
+  , nodeGPIOs      :: GPIOs
+  , nodeMutedUntil :: Maybe UTCTime
   }
 
 --------------------------------------------------------------------------------
@@ -48,6 +52,14 @@ type NodeName = Text
 --------------------------------------------------------------------------------
 -- | Mapping between GPIO names and the GPIO value that represents them.
 type GPIOs = Map Text GPIO
+
+--------------------------------------------------------------------------------
+newNode :: Address -> Node
+newNode addr = Node { nodeAddress    = addr
+                    , nodeType       = NetworkEndpoint
+                    , nodeGPIOs      = Map.empty
+                    , nodeMutedUntil = Nothing
+                    }
 
 --------------------------------------------------------------------------------
 nodeTypeFromDeviceType :: Word8 -> NodeType
