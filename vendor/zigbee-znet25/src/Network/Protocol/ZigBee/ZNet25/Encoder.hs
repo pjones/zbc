@@ -62,7 +62,7 @@ encode :: Frame -> [B.ByteString]
 encode f = [ B.singleton ctrlFrameDelim, len, f_esc, cksum ]
   where
     f_enc = DS.encode f
-    f_esc = escapeBuffer f_enc
+    f_esc = f_enc -- escapeBuffer f_enc
     len   = (escapeBuffer . DS.runPut . DS.putWord16be .
              fromIntegral . B.length) f_enc
     cksum = escapeBuffer $ B.singleton $ 0xff - (B.foldl (+) 0 f_enc)
@@ -191,4 +191,3 @@ isControlChar c
   | c == ctrlXon        = True
   | c == ctrlXoff       = True
   | otherwise           = False
-
