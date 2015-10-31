@@ -16,6 +16,9 @@ nodes:
   - name: irbeam
     addr: 00:13:a2:00:40:d8:71:3b
 
+  - name: air
+    addr: 00:13:a2:00:40:d8:71:0f
+
 # Commands that can be sent to nodes:
 commands:
   - name: Lights On
@@ -54,6 +57,18 @@ commands:
     code: D4
     payload: "5"
 
+  - name: Air On
+    node: air
+    type: AT
+    code: D4
+    payload: "5"
+
+  - name: Air Off
+    node: air
+    type: AT
+    code: D4
+    payload: "4"
+
 # Event handlers:
 events:
   - when: Node Identification
@@ -72,12 +87,16 @@ events:
     node: irbeam
     actions:
       - skip muted
-      - mute 60000
+      - mute 40000
       - send Lights Off
+      - wait 650
+      - send Air On
+      - wait 500
+      - send Air Off
       - send Storm
-      - wait 10000
+      - wait 29000
       - send Blacklights On
-      - wait 19000
+      - wait 13000
       - send Music
       - send Blacklights Off
       - send Lights On

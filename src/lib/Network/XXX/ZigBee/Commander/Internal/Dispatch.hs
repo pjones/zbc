@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 {-
 
 This file is part of the zigbee-commander package. It is subject to
@@ -18,6 +20,7 @@ module Network.XXX.ZigBee.Commander.Internal.Dispatch
 -- Package Imports:
 import Control.Concurrent
 import Control.Monad (forever, void, when)
+import Data.Monoid
 
 --------------------------------------------------------------------------------
 -- Local Imports:
@@ -61,7 +64,8 @@ dispatch = forever go where
       do cmds <- asks (cCommandTable . config)
          case CommandTable.lookup cmds name of
            Nothing  -> return ()
-           Just cmd -> asks commands >>= \chan ->
+           Just cmd -> logger ("sending command: " <> name) >>
+                       asks commands >>= \chan ->
                        liftIO (writeChan chan cmd)
          return True
 

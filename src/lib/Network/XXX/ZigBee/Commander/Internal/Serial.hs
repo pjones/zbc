@@ -120,8 +120,8 @@ writer (addr, cmd) = withConnectedDevice go
     go :: (MonadIO m) => Maybe Handle -> Commander m ()
     go Nothing  = logger "not connected, dropping frames"
     go (Just h) = do
-      debug (loggerS ("sending command: " ++ show cmd) >>
-             loggerS ("     to address: " ++ show addr))
+      debug (loggerS ("sending frame: " ++ show cmd) >>
+             loggerS ("   to address: " ++ show addr))
 
       fid <- nextFrameID
       write h (Z.encode $ mkFrame fid addr cmd)
