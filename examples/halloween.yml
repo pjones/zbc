@@ -33,13 +33,13 @@ commands:
     code: D3
     payload: "4"
 
-  - name: Blacklights On
+  - name: Speakers On
     node: outlet
     type: AT
     code: D4
     payload: "5"
 
-  - name: Blacklights Off
+  - name: Speakers Off
     node: outlet
     type: AT
     code: D4
@@ -75,12 +75,19 @@ events:
     node: outlet
     actions:
       - send Lights On
-      - send Blacklights Off
+      - send Speakers On
 
   - when: Node Identification
     node: picofx
     actions:
       - send Music
+
+  - when: Node Identification
+    node: air
+    actions:
+      - send Air On
+      - wait 500
+      - send Air Off
 
   - when: Digital Sample
     with: D0 Low
@@ -94,9 +101,9 @@ events:
       - wait 500
       - send Air Off
       - send Storm
-      - wait 29000
-      - send Blacklights On
+      - wait 16000
+      # use z-wave command for black lights
       - wait 13000
       - send Music
-      - send Blacklights Off
+      # use z-wave command for black lights
       - send Lights On
