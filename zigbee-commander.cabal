@@ -65,14 +65,14 @@ library
     ghc-prof-options: -prof -auto-all
 
   build-depends: aeson                >= 0.8   && < 0.10
-               , async                >= 2.0   && < 2.1
+               , async                >= 2.0   && < 2.2
                , base                 >= 4.6   && < 5.0
                , bytestring           >= 0.10  && < 0.11
                , containers           >= 0.5   && < 0.6
                , either               >= 4.3   && < 4.5
                , filepath             >= 1.3   && < 1.5
                , mtl                  >= 2.1   && < 2.3
-               , optparse-applicative >= 0.11  && < 0.12
+               , optparse-applicative >= 0.11  && < 0.13
                , parsec               >= 3.1   && < 3.2
                , process              >= 1.1   && < 1.3
                , serialport           >= 0.4   && < 0.5
@@ -81,7 +81,7 @@ library
                , text                 >= 0.11  && < 1.3
                , time                 >= 1.5   && < 1.6
                , transformers         >= 0.3   && < 0.5
-               , vector               >= 0.10  && < 0.11
+               , vector               >= 0.10  && < 0.12
                , yaml                 >= 0.8   && < 0.9
                , zigbee-znet25        >= 0.1   && < 0.2
 

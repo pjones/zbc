@@ -1,0 +1,10 @@
+resolver: lts-5.15
+
+packages:
+- ../
+- ../vendor/serialport
+- ../vendor/zigbee-znet25
+
+flags:
+  zigbee-commander:
+    maintainer: true

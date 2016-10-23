@@ -221,7 +221,7 @@ eventHandlers :: Event -> [EventHandler] -> [EventHandler]
 eventHandlers event = filter (go $ eventDetails event)
   where
     go :: (Address, EventType) -> EventHandler -> Bool
-    go (addr, etype) (EventHandler {..}) =
+    go (addr, etype) EventHandler {..} =
       eventType             == etype &&
       runIdentity eventNode == addr  &&
       checkMatcher eventMatcher
