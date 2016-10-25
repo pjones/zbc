@@ -74,6 +74,7 @@ data SkipType = SkipMuted
 
 --------------------------------------------------------------------------------
 data EventAction = SendCommand Text
+                 | ShellCommandAsync Text
                  | Wait Int
                  | Mute Int
                  | Skip SkipType
@@ -92,6 +93,7 @@ type EventHandler = EventHandler' Identity
 --------------------------------------------------------------------------------
 data Event = JoinNotification Address NodeName NodeType
            | DiscoveryNotification Address NodeName NodeType
+           | ResetRequested Address
            | DigitalSample Address PinID DigitalState
            deriving (Show)
 
@@ -132,13 +134,24 @@ parseEventAction t =
 
   where
     paction :: Parser EventAction
-    paction = choice [try psend, try pwait, try pmute, pskip] <* eof
+    paction = choice [ try psend
+                     , try pshella
+                     , try pwait
+                     , try pmute
+                     , pskip
+                     ] <* eof
 
     psend :: Parser EventAction
     psend = do
       void (string "send")
       skipMany space
       SendCommand . Text.pack <$> many1 anyChar
+
+    pshella :: Parser EventAction
+    pshella = do
+      void (string "sh")
+      skipMany space
+      ShellCommandAsync . Text.pack <$> many1 anyChar
 
     pwait :: Parser EventAction
     pwait = do
@@ -212,6 +225,7 @@ resolve nodes EventHandler {..} =
 eventDetails :: Event -> (Address, EventType)
 eventDetails (JoinNotification a _ _)      = (a, NodeIdentification)
 eventDetails (DiscoveryNotification a _ _) = (a, NodeIdentification)
+eventDetails (ResetRequested a)            = (a, NodeIdentification)
 eventDetails (DigitalSample a _ _)         = (a, DigitalSampleIndicator)
 
 --------------------------------------------------------------------------------

@@ -17,6 +17,7 @@ module Network.XXX.ZigBee.Commander.NodeTable
        , defaultNodeTable
        , resolve
        , lookup
+       , lookupOneOrAll
        ) where
 
 --------------------------------------------------------------------------------
@@ -26,6 +27,7 @@ import Data.Aeson.Types (typeMismatch)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
+import qualified Data.Text as Text
 import qualified Data.Vector as Vector
 import Prelude hiding (lookup)
 
@@ -82,3 +84,13 @@ resolve tbl (UnresolvedText name) =
 -- | Look up a node's MAC address using its name.
 lookup :: NodeTable -> Text -> Maybe MAC
 lookup (NodeTable m) key = Map.lookup key m
+
+--------------------------------------------------------------------------------
+-- | If given a name, lookup just that node.  Otherwise return all
+-- nodes in the node table.  This is helpful for commands that
+-- optionally take a node name and a missing name means all nodes.
+lookupOneOrAll :: NodeTable -> Maybe Text -> Either String [MAC]
+lookupOneOrAll (NodeTable m) Nothing = Right (Map.elems m)
+lookupOneOrAll (NodeTable m) (Just name) = case Map.lookup name m of
+  Nothing  -> Left ("unknown node name: " ++ Text.unpack name)
+  Just mac -> Right [mac]

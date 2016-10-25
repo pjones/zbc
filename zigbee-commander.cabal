@@ -44,15 +44,16 @@ library
     Network.XXX.ZigBee.Commander.Event
     Network.XXX.ZigBee.Commander.GPIO
     Network.XXX.ZigBee.Commander.Internal.Commander
+    Network.XXX.ZigBee.Commander.Internal.Dispatch
+    Network.XXX.ZigBee.Commander.Internal.Environment
     Network.XXX.ZigBee.Commander.Internal.Main
+    Network.XXX.ZigBee.Commander.Internal.Ops
+    Network.XXX.ZigBee.Commander.Internal.Resolve
     Network.XXX.ZigBee.Commander.Internal.Serial
     Network.XXX.ZigBee.Commander.Internal.State
     Network.XXX.ZigBee.Commander.Internal.Util
     Network.XXX.ZigBee.Commander.Node
     Network.XXX.ZigBee.Commander.NodeTable
-    Network.XXX.ZigBee.Commander.Internal.Resolve
-    Network.XXX.ZigBee.Commander.Internal.Dispatch
-    Network.XXX.ZigBee.Commander.Internal.Environment
 
   other-modules:
 

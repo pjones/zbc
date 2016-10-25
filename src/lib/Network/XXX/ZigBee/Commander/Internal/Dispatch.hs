@@ -19,12 +19,15 @@ module Network.XXX.ZigBee.Commander.Internal.Dispatch
 --------------------------------------------------------------------------------
 -- Package Imports:
 import Control.Concurrent
+import Control.Concurrent.Async
 import Control.Monad (forever, void, when)
 import Data.Monoid
+import qualified Data.Text as Text
+import qualified System.Process as Process
 
 --------------------------------------------------------------------------------
 -- Local Imports:
-import qualified Network.XXX.ZigBee.Commander.CommandTable as CommandTable
+import qualified Network.XXX.ZigBee.Commander.Internal.Ops as Ops
 import Network.XXX.ZigBee.Commander.Config
 import Network.XXX.ZigBee.Commander.Event
 import Network.XXX.ZigBee.Commander.Internal.Commander
@@ -60,14 +63,14 @@ dispatch = forever go where
   ----------------------------------------------------------------------------
   action :: (MonadIO m) => Event -> EventAction -> Commander m Bool
   action event ea = case ea of
-    SendCommand name ->
-      do cmds <- asks (cCommandTable . config)
-         case CommandTable.lookup cmds name of
-           Nothing  -> return ()
-           Just cmd -> logger ("sending command: " <> name) >>
-                       asks commands >>= \chan ->
-                       liftIO (writeChan chan cmd)
-         return True
+    SendCommand name -> do
+      Ops.send name
+      return True
+
+    ShellCommandAsync command -> do
+      debug (logger $ "running async shell command: " <> command)
+      liftIO . void . async . Process.callCommand . Text.unpack $ command
+      return True
 
     Wait delay -> do
       debug (loggerS $ "waiting: " ++ show delay)
