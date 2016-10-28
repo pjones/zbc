@@ -96,14 +96,15 @@ events:
       - skip muted
       - mute 40000
       - send Lights Off
+      - sh ha-switch.sh dark
       - wait 650
       - send Air On
       - wait 500
       - send Air Off
       - send Storm
       - wait 16000
-      # use z-wave command for black lights
+      - sh ha-switch.sh blue
       - wait 13000
       - send Music
-      # use z-wave command for black lights
+      - sh ha-switch.sh normal
       - send Lights On
