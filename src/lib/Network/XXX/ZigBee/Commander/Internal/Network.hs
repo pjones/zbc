@@ -112,9 +112,15 @@ server = do
     liftIO $ do
       path   <- serverSocketName
       socket <- Network.listenOn (Network.UnixSocket path)
-      handler socket `finally` Network.sClose socket
+      handler socket `finally` cleanup socket path
 
   where
+
+    ----------------------------------------------------------------------------
+    cleanup :: Network.Socket -> FilePath -> IO ()
+    cleanup socket path = do
+      Network.sClose socket
+      removeFile path
 
     ----------------------------------------------------------------------------
     listen :: (MonadIO m) => Network.Socket -> Commander m ()
