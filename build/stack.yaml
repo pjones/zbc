@@ -1,4 +1,4 @@
-resolver: lts-5.15
+resolver: lts-6.23
 
 packages:
 - ../
@@ -8,3 +8,6 @@ packages:
 flags:
   zigbee-commander:
     maintainer: true
+
+extra-deps:
+- directory-1.2.7.0
