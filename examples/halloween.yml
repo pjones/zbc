@@ -76,6 +76,7 @@ events:
     actions:
       - send Lights On
       - send Speakers On
+      - sh ha-switch.sh normal
 
   - when: Node Identification
     node: picofx
@@ -85,25 +86,41 @@ events:
   - when: Node Identification
     node: air
     actions:
-      - send Air On
-      - wait 500
       - send Air Off
 
+  # What to do when someone breaks the IR beam by walking up to my
+  # porch.  This will come in from the "irbeam" XBee when it reads a
+  # low voltage value from GPIO D0.
   - when: Digital Sample
     with: D0 Low
     node: irbeam
     actions:
+      # The next two lines ensure that this list of actions only runs
+      # once every N seconds.
       - skip muted
       - mute 40000
+
+      # Turn off the lights connected to a XBee and those via my home
+      # automation system (via a shell script.)
       - send Lights Off
       - sh ha-switch.sh dark
-      - wait 650
+      - wait 250
+
+      # Spray some compressed air on the person who just broke the IR
+      # beam.  The timer should really be in the hardware but because
+      # I'm lazy I placed it here in the configuration.  Once the air
+      # stream is started, switch to "storm" mode.
       - send Air On
-      - wait 500
-      - send Air Off
       - send Storm
+      - wait 300
+      - send Air Off
+
+      # Let the storm play for a few few seconds, then turn on the
+      # black lights.
       - wait 16000
       - sh ha-switch.sh blue
+
+      # Wait a few more seconds then put everything back to normal.
       - wait 13000
       - send Music
       - sh ha-switch.sh normal
