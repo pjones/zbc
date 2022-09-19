@@ -38,8 +38,8 @@ test t =
   do
     r <- quickCheckResult t
     return $ case r of
-      Success _ _ _ -> True
-      _             -> False
+      Success{} -> True
+      _         -> False
 
 main :: IO ()
 main =
