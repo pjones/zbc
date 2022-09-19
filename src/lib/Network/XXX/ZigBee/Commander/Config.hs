@@ -11,23 +11,18 @@ contained in the LICENSE file.
 
 -}
 
---------------------------------------------------------------------------------
 module Network.XXX.ZigBee.Commander.Config
-       ( Config (..)
-       , defaultConfig
-       , readConfigFile
-       ) where
+  ( Config (..),
+    defaultConfig,
+    readConfigFile,
+  )
+where
 
---------------------------------------------------------------------------------
--- Package Imports:
 import Control.Monad (forM)
 import Data.Aeson
 import Data.Aeson.Types (typeMismatch)
 import Data.Text (Text)
 import qualified Data.Yaml as YAML
-
---------------------------------------------------------------------------------
--- Local Imports:
 import Network.XXX.ZigBee.Commander.CommandTable (CommandTable)
 import qualified Network.XXX.ZigBee.Commander.CommandTable as CommandTable
 import Network.XXX.ZigBee.Commander.Event (EventHandler)
@@ -35,56 +30,52 @@ import qualified Network.XXX.ZigBee.Commander.Event as EventHandler
 import Network.XXX.ZigBee.Commander.NodeTable (NodeTable)
 import qualified Network.XXX.ZigBee.Commander.NodeTable as NodeTable
 
---------------------------------------------------------------------------------
 data Config = Config
-  { cDevice                 :: Text
-  , cConnectionRetryTimeout :: Int
-  , cNodeTable              :: NodeTable
-  , cCommandTable           :: CommandTable
-  , cEventHandlers          :: [EventHandler]
+  { cDevice :: Text,
+    cConnectionRetryTimeout :: Int,
+    cNodeTable :: NodeTable,
+    cCommandTable :: CommandTable,
+    cEventHandlers :: [EventHandler]
   }
 
---------------------------------------------------------------------------------
 instance FromJSON Config where
   parseJSON (Object v) = do
     addrs <- v .: "nodes"
-    cmds  <- v .: "commands"
-    ehs   <- v .: "events"
+    cmds <- v .: "commands"
+    ehs <- v .: "events"
 
     cmds' <- case CommandTable.resolve addrs cmds of
-               Left e  -> fail e
-               Right a -> return a
+      Left e -> fail e
+      Right a -> return a
 
     -- FIXME: Validate command names...
 
     ehs' <- forM ehs $ \eh ->
-              case EventHandler.resolve addrs eh of
-                Left e  -> fail e
-                Right a -> return a
+      case EventHandler.resolve addrs eh of
+        Left e -> fail e
+        Right a -> return a
 
     Config <$> ((v .: "config") >>= (.: "device"))
-           <*> pure (cConnectionRetryTimeout defaultConfig)
-           <*> pure addrs
-           <*> pure cmds'
-           <*> pure ehs'
-
+      <*> pure (cConnectionRetryTimeout defaultConfig)
+      <*> pure addrs
+      <*> pure cmds'
+      <*> pure ehs'
   parseJSON invalid = typeMismatch "configuration hash" invalid
 
---------------------------------------------------------------------------------
 defaultConfig :: Config
 defaultConfig =
-  Config { cDevice                 = "/dev/ttyUSB0"
-         , cConnectionRetryTimeout = 5
-         , cNodeTable              = NodeTable.defaultNodeTable
-         , cCommandTable           = CommandTable.defaultCommandTable
-         , cEventHandlers          = []
-         }
+  Config
+    { cDevice = "/dev/ttyUSB0",
+      cConnectionRetryTimeout = 5,
+      cNodeTable = NodeTable.defaultNodeTable,
+      cCommandTable = CommandTable.defaultCommandTable,
+      cEventHandlers = []
+    }
 
---------------------------------------------------------------------------------
 readConfigFile :: FilePath -> IO (Either String Config)
 readConfigFile path = do
   result <- YAML.decodeFileEither path
 
   return $ case result of
-    Left e  -> Left (show e)
+    Left e -> Left (show e)
     Right a -> Right a

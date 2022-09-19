@@ -9,59 +9,51 @@ contained in the LICENSE file.
 
 -}
 
---------------------------------------------------------------------------------
 module Network.XXX.ZigBee.Commander.Node
-       ( Node (..)
-       , NodeType (..)
-       , NodeName
-       , GPIOs
-       , newNode
-       , nodeTypeFromDeviceType
-       ) where
+  ( Node (..),
+    NodeType (..),
+    NodeName,
+    GPIOs,
+    newNode,
+    nodeTypeFromDeviceType,
+  )
+where
 
---------------------------------------------------------------------------------
--- Package Imports:
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import Data.Time.Clock
 import Data.Word (Word8)
-
---------------------------------------------------------------------------------
--- Local Imports:
 import Network.XXX.ZigBee.Commander.Address
 import Network.XXX.ZigBee.Commander.GPIO
 
---------------------------------------------------------------------------------
 data Node = Node
-  { nodeAddress    :: Address
-  , nodeType       :: NodeType
-  , nodeGPIOs      :: GPIOs
-  , nodeMutedUntil :: Maybe UTCTime
+  { nodeAddress :: Address,
+    nodeType :: NodeType,
+    nodeGPIOs :: GPIOs,
+    nodeMutedUntil :: Maybe UTCTime
   }
 
---------------------------------------------------------------------------------
-data NodeType = NetworkCoordinator
-              | NetworkRouter
-              | NetworkEndpoint
-              deriving (Show)
+data NodeType
+  = NetworkCoordinator
+  | NetworkRouter
+  | NetworkEndpoint
+  deriving (Show)
 
---------------------------------------------------------------------------------
 type NodeName = Text
 
---------------------------------------------------------------------------------
 -- | Mapping between GPIO names and the GPIO value that represents them.
 type GPIOs = Map Text GPIO
 
---------------------------------------------------------------------------------
 newNode :: Address -> Node
-newNode addr = Node { nodeAddress    = addr
-                    , nodeType       = NetworkEndpoint
-                    , nodeGPIOs      = Map.empty
-                    , nodeMutedUntil = Nothing
-                    }
+newNode addr =
+  Node
+    { nodeAddress = addr,
+      nodeType = NetworkEndpoint,
+      nodeGPIOs = Map.empty,
+      nodeMutedUntil = Nothing
+    }
 
---------------------------------------------------------------------------------
 nodeTypeFromDeviceType :: Word8 -> NodeType
 nodeTypeFromDeviceType 0 = NetworkCoordinator
 nodeTypeFromDeviceType 1 = NetworkRouter

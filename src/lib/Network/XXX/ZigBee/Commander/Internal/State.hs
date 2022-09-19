@@ -9,50 +9,43 @@ contained in the LICENSE file.
 
 -}
 
---------------------------------------------------------------------------------
 module Network.XXX.ZigBee.Commander.Internal.State
-       ( State (..)
-       , DeviceStatus (..)
-       , initialState
-       ) where
+  ( State (..),
+    DeviceStatus (..),
+    initialState,
+  )
+where
 
---------------------------------------------------------------------------------
--- Package Imports:
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import Data.Time.Calendar
 import Data.Time.Clock
 import qualified Network.Protocol.ZigBee.ZNet25 as Z
-import System.IO
-
---------------------------------------------------------------------------------
--- Local Imports:
 import Network.XXX.ZigBee.Commander.Address
 import Network.XXX.ZigBee.Commander.Node
+import System.IO
 
---------------------------------------------------------------------------------
 data State = State
-  { deviceStatus :: DeviceStatus
-  , decoderState :: Z.DecoderState
-  , frameID      :: Z.FrameId
-  , nodeStatus   :: Map Address Node
+  { deviceStatus :: DeviceStatus,
+    decoderState :: Z.DecoderState,
+    frameID :: Z.FrameId,
+    nodeStatus :: Map Address Node
   }
 
---------------------------------------------------------------------------------
 data DeviceStatus = DeviceStatus Text (Either UTCTime Handle)
 
---------------------------------------------------------------------------------
 initialState :: Text -> State
-initialState path = State { deviceStatus = initialDeviceState path
-                          , decoderState = Z.initDecode
-                          , frameID      = 0
-                          , nodeStatus   = Map.empty
-                          }
+initialState path =
+  State
+    { deviceStatus = initialDeviceState path,
+      decoderState = Z.initDecode,
+      frameID = 0,
+      nodeStatus = Map.empty
+    }
 
---------------------------------------------------------------------------------
 initialDeviceState :: Text -> DeviceStatus
 initialDeviceState path = DeviceStatus path (Left initialTime)
   where
     initialTime :: UTCTime
-    initialTime =  UTCTime (ModifiedJulianDay 0) (fromIntegral (0 :: Integer))
+    initialTime = UTCTime (ModifiedJulianDay 0) (fromIntegral (0 :: Integer))

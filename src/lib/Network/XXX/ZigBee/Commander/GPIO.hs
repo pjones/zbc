@@ -9,29 +9,26 @@ contained in the LICENSE file.
 
 -}
 
---------------------------------------------------------------------------------
 module Network.XXX.ZigBee.Commander.GPIO
-       ( GPIO (..)
-       , DigitalState (..)
-       , PinState (..)
-       , PinID
-       ) where
+  ( GPIO (..),
+    DigitalState (..),
+    PinState (..),
+    PinID,
+  )
+where
 
---------------------------------------------------------------------------------
 data DigitalState = DigitalLow | DigitalHigh deriving (Show, Eq, Enum)
 
---------------------------------------------------------------------------------
 type PinID = Int
 
---------------------------------------------------------------------------------
 data GPIO = GPIO
-  { gpioName  :: PinID
-  , gpioState :: PinState
+  { gpioName :: PinID,
+    gpioState :: PinState
   }
 
---------------------------------------------------------------------------------
-data PinState = Disabled
-              | DigitalInput
-              | DigitalOutput
-              | AnalogInput
-              | SpecialPurpose
+data PinState
+  = Disabled
+  | DigitalInput
+  | DigitalOutput
+  | AnalogInput
+  | SpecialPurpose

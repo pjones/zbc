@@ -1,4 +1,5 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, ScopedTypeVariables #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 {-
 
@@ -11,25 +12,23 @@ contained in the LICENSE file.
 
 -}
 
---------------------------------------------------------------------------------
 module Network.XXX.ZigBee.Commander.Internal.Commander
-       ( Commander
-       , logger
-       , loggerS
-       , debug
-       , nextFrameID
-       , isMuted
-       , mute
-       , spawn
-       , runCommander
-       , MonadIO
-       , liftIO
-       , ask
-       , asks
-       ) where
+  ( Commander,
+    logger,
+    loggerS,
+    debug,
+    nextFrameID,
+    isMuted,
+    mute,
+    spawn,
+    runCommander,
+    MonadIO,
+    liftIO,
+    ask,
+    asks,
+  )
+where
 
---------------------------------------------------------------------------------
--- Package Imports:
 import Control.Concurrent.Async
 import Control.Concurrent.STM
 import Control.Monad.Reader
@@ -43,35 +42,26 @@ import qualified Data.Text.IO as Text
 import Data.Time.Clock
 import Data.Time.Format
 import qualified Network.Protocol.ZigBee.ZNet25 as Z
-import System.IO
-
---------------------------------------------------------------------------------
--- Local Imports:
 import Network.XXX.ZigBee.Commander.Address
 import Network.XXX.ZigBee.Commander.Internal.Environment
 import Network.XXX.ZigBee.Commander.Internal.State
 import Network.XXX.ZigBee.Commander.Node
+import System.IO
 
---------------------------------------------------------------------------------
-newtype Commander m a =
-  Commander {unC :: ReaderT Environment (EitherT String m) a}
+newtype Commander m a = Commander {unC :: ReaderT Environment (EitherT String m) a}
   deriving (Functor, Applicative, Monad, MonadIO, MonadReader Environment)
 
---------------------------------------------------------------------------------
 -- FIXME:
 logger :: (MonadIO m) => Text -> Commander m ()
 logger = liftIO . Text.hPutStrLn stderr
 
---------------------------------------------------------------------------------
 loggerS :: (MonadIO m) => String -> Commander m ()
 loggerS = logger . Text.pack
 
---------------------------------------------------------------------------------
 -- FIXME:
 debug :: (Monad m) => Commander m () -> Commander m ()
 debug = when True
 
---------------------------------------------------------------------------------
 nextFrameID :: (MonadIO m) => Commander m Z.FrameId
 nextFrameID = do
   stateVar <- asks state
@@ -79,42 +69,40 @@ nextFrameID = do
   liftIO . atomically $ do
     s <- readTVar stateVar
 
-    let fid = if frameID s == maxBound
-                then 1
-                else frameID s + 1
+    let fid =
+          if frameID s == maxBound
+            then 1
+            else frameID s + 1
 
     writeTVar stateVar s {frameID = fid}
     return fid
 
---------------------------------------------------------------------------------
 -- | Returns true if the node with the given address is muted.
 isMuted :: (MonadIO m) => Address -> Commander m Bool
 isMuted addr = do
   stateVar <- asks state
-  table    <- nodeStatus <$> liftIO (atomically $ readTVar stateVar)
+  table <- nodeStatus <$> liftIO (atomically $ readTVar stateVar)
 
   case nodeMutedUntil =<< Map.lookup addr table of
     Nothing -> return False
-    Just t  -> (t >) <$> liftIO getCurrentTime
+    Just t -> (t >) <$> liftIO getCurrentTime
 
---------------------------------------------------------------------------------
 -- | Mark a node as muted.
 mute :: (MonadIO m) => Address -> Int -> Commander m ()
 mute addr msecs = do
-    stateVar <- asks state
-    now <- liftIO getCurrentTime
-    let time = addUTCTime mkndt now
+  stateVar <- asks state
+  now <- liftIO getCurrentTime
+  let time = addUTCTime mkndt now
 
-    liftIO . atomically . modifyTVar stateVar $ \s ->
-      let table  = nodeStatus s
-          table' = setNode time (getNode table) table
-      in s {nodeStatus = table'}
+  liftIO . atomically . modifyTVar stateVar $ \s ->
+    let table = nodeStatus s
+        table' = setNode time (getNode table) table
+     in s {nodeStatus = table'}
 
-    debug $
-      let locale = defaultTimeLocale
-          format = "%H:%M:%S"
-      in loggerS $ show addr ++ " is muted until " ++ formatTime locale format time
-
+  debug $
+    let locale = defaultTimeLocale
+        format = "%H:%M:%S"
+     in loggerS $ show addr ++ " is muted until " ++ formatTime locale format time
   where
     mkndt :: NominalDiffTime
     mkndt = realToFrac . picosecondsToDiffTime . fromIntegral $ (msecs * 1000000000)
@@ -126,20 +114,19 @@ mute addr msecs = do
     setNode t node = Map.insert addr (setMuted t node)
 
     setMuted :: UTCTime -> Node -> Node
-    setMuted t node = node { nodeMutedUntil = Just t }
+    setMuted t node = node {nodeMutedUntil = Just t}
 
---------------------------------------------------------------------------------
 spawn :: Commander IO a -> Commander IO (Async (Either String a))
 spawn action = liftIO . async . flip runCommander action =<< ask
 
---------------------------------------------------------------------------------
-runCommander :: (Monad m)
-             => Environment
-             -> Commander m a
-             -> m (Either String a)
+runCommander ::
+  (Monad m) =>
+  Environment ->
+  Commander m a ->
+  m (Either String a)
 runCommander env cmdr = do
   result <- runEitherT $ runReaderT (unC cmdr) env
 
   return $ case result of
-    Left  e -> Left  e
+    Left e -> Left e
     Right a -> Right a

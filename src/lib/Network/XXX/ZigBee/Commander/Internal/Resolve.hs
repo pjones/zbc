@@ -11,46 +11,39 @@ contained in the LICENSE file.
 
 -}
 
---------------------------------------------------------------------------------
 module Network.XXX.ZigBee.Commander.Internal.Resolve
-       ( FromUnresolved (..)
-       , Unresolved (..)
-       , resolveMismatch
-       ) where
+  ( FromUnresolved (..),
+    Unresolved (..),
+    resolveMismatch,
+  )
+where
 
---------------------------------------------------------------------------------
--- Package Imports:
 import Control.Applicative
 import Data.Aeson
 import Data.Aeson.Types
 import Data.Text (Text)
 
---------------------------------------------------------------------------------
 -- | A bit of a hack to allow JSON parsing of types with kind
 -- @(* -> *)@ such as the @Unresolved@ type.
 class FromUnresolved f where
   parseUnresolved :: FromJSON a => Value -> Parser (f a)
 
---------------------------------------------------------------------------------
 -- | A type that represents a value that may not have been fully
 -- parsed from JSON.
-data Unresolved a = Resolved a
-                    -- ^ Fully parsed.
+data Unresolved a
+  = -- | Fully parsed.
+    Resolved a
+  | -- | Not parsed, but preserved JSON text.
+    UnresolvedText Text
+  | -- | Not parsed, but preserved JSON value.
+    UnresolvedValue Value
 
-                  | UnresolvedText Text
-                    -- ^ Not parsed, but preserved JSON text.
-
-                  | UnresolvedValue Value
-                    -- ^ Not parsed, but preserved JSON value.
-
---------------------------------------------------------------------------------
 instance FromUnresolved Unresolved where
   parseUnresolved s@(String t) =
     Resolved <$> parseJSON s <|> pure (UnresolvedText t)
   parseUnresolved invalid =
     pure (UnresolvedValue invalid)
 
---------------------------------------------------------------------------------
 -- | FIXME: actually produce a real error
 resolveMismatch :: String -> Value -> String
 resolveMismatch x _ = x

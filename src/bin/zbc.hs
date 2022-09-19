@@ -9,13 +9,9 @@ contained in the LICENSE file.
 
 -}
 
---------------------------------------------------------------------------------
 module Main (main) where
 
---------------------------------------------------------------------------------
--- Local Imports:
 import Network.XXX.ZigBee.Commander.Internal.Main
 
---------------------------------------------------------------------------------
 main :: IO ()
 main = commanderMain

@@ -9,25 +9,20 @@ contained in the LICENSE file.
 
 -}
 
---------------------------------------------------------------------------------
 module Network.XXX.ZigBee.Commander.Internal.Util
-       ( hexdump
-       ) where
+  ( hexdump,
+  )
+where
 
---------------------------------------------------------------------------------
--- Package Imports:
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as ByteString
 import Data.Monoid
 import Data.Text (Text)
 import qualified Data.Text as Text
+import Network.XXX.ZigBee.Commander.Internal.Commander
 import Text.Printf (printf)
 
---------------------------------------------------------------------------------
--- Local Imports:
-import Network.XXX.ZigBee.Commander.Internal.Commander
-
---------------------------------------------------------------------------------
 hexdump :: (MonadIO m) => Text -> ByteString -> Commander m ()
-hexdump msg b = let encoded = concatMap (printf "%02x ") (ByteString.unpack b)
-                 in logger (msg <> Text.pack encoded)
+hexdump msg b =
+  let encoded = concatMap (printf "%02x ") (ByteString.unpack b)
+   in logger (msg <> Text.pack encoded)
