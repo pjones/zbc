@@ -31,8 +31,8 @@ where
 
 import Control.Concurrent.Async
 import Control.Concurrent.STM
+import Control.Monad.Except
 import Control.Monad.Reader
-import Control.Monad.Trans.Either
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe
@@ -48,7 +48,7 @@ import Network.XXX.ZigBee.Commander.Internal.State
 import Network.XXX.ZigBee.Commander.Node
 import System.IO
 
-newtype Commander m a = Commander {unC :: ReaderT Environment (EitherT String m) a}
+newtype Commander m a = Commander {unC :: ReaderT Environment (ExceptT String m) a}
   deriving (Functor, Applicative, Monad, MonadIO, MonadReader Environment)
 
 -- FIXME:
@@ -81,7 +81,7 @@ nextFrameID = do
 isMuted :: (MonadIO m) => Address -> Commander m Bool
 isMuted addr = do
   stateVar <- asks state
-  table <- nodeStatus <$> liftIO (atomically $ readTVar stateVar)
+  table <- nodeStatus <$> liftIO (readTVarIO stateVar)
 
   case nodeMutedUntil =<< Map.lookup addr table of
     Nothing -> return False
@@ -125,7 +125,7 @@ runCommander ::
   Commander m a ->
   m (Either String a)
 runCommander env cmdr = do
-  result <- runEitherT $ runReaderT (unC cmdr) env
+  result <- runExceptT $ runReaderT (unC cmdr) env
 
   return $ case result of
     Left e -> Left e
