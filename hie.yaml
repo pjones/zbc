@@ -1,0 +1,6 @@
+cradle:
+  cabal:
+    - path: "./src/lib"
+      component: "lib:zigbee-commander"
+    - path: "./src/bin"
+      component: "exe:zbc"
