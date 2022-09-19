@@ -98,13 +98,11 @@ serverCommand ServerOptions {..} = do
     Left e -> fail e
     Right a -> newEnvironment a
 
-  serialIOThread <- async (void $ runCommander env serialThread)
-  serverThread <- async (void $ runCommander env Network.server)
-  dispatchThread <- async (void $ runCommander env dispatch)
-
-  wait dispatchThread
-  cancel serverThread
-  cancel serialIOThread
+  let run = void . runCommander env
+  runConcurrently $
+    Concurrently (run serialThread)
+      <> Concurrently (run Network.server)
+      <> Concurrently (run dispatch)
 
 clientCommand :: ClientOptions -> IO ()
 clientCommand ClientOptions {..} = do

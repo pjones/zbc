@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 {-
@@ -56,20 +57,19 @@ serialThread = forever $ do
     -- available.  If no device is connected, wait for it to become
     -- connected.
     waitRead :: (MonadIO m) => Commander m (Async Bool)
-    waitRead = withConnectedDevice $ \mh ->
-      case mh of
-        Nothing -> liftIO (threadDelay 1000000) >> waitRead
-        Just h -> liftIO (async $ hWaitForInput h (-1))
+    waitRead = withConnectedDevice $ \case
+      Nothing -> liftIO (threadDelay 1000000) >> waitRead
+      Just h -> liftIO (async $ hWaitForInput h (-1))
 
 device :: (MonadIO m) => Commander m DeviceStatus
 device = do
-  status <- deviceStatus <$> (asks state >>= liftIO . atomically . readTVar)
+  status <- deviceStatus <$> (asks state >>= liftIO . readTVarIO)
 
   case status of
     DeviceStatus _ (Right _) -> return status
     DeviceStatus path (Left t) ->
       connect path t
-        >>= maybe (return status) connected
+        >>= maybe (pure status) connected
   where
     connect :: (MonadIO m) => Text -> UTCTime -> Commander m (Maybe DeviceStatus)
     connect path t = do
@@ -81,6 +81,7 @@ device = do
         else do
           -- FIXME: Guard for exceptions.
           -- FIXME: Store serial port settings in Config.
+          logger ("connecting to device at: " <> path)
           h <- liftIO (hOpenSerial (Text.unpack path) defaultSerialSettings)
           return . Just $ DeviceStatus path (Right h)
 
@@ -89,6 +90,7 @@ device = do
     connected status = do
       let update s = s {deviceStatus = status}
       stateVar <- asks state
+      logger "connected"
       liftIO (atomically $ modifyTVar stateVar update)
       writer (Local, AT (mkATCode (78, 68)) Nothing) -- AT-ND (node discovery)
       return status
