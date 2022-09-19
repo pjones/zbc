@@ -22,16 +22,19 @@ module Network.XXX.ZigBee.Commander.Internal.Network
 where
 
 import Control.Concurrent.Async
-import Control.Exception (finally)
-import Control.Monad (forever, void)
+import Control.Exception (bracket)
+import Control.Monad (forever, unless, void, when)
 import Data.Aeson hiding (decode)
 import qualified Data.Aeson as Aeson
 import Data.Aeson.Types (typeMismatch)
-import qualified Data.ByteString as ByteString
+import Data.Bifunctor (first)
+import qualified Data.ByteString.Char8 as ByteString
 import qualified Data.ByteString.Lazy as ByteStringL
+import Data.Foldable (traverse_)
 import Data.Text (Text)
 import qualified Data.Text as Text
-import qualified Network
+import qualified Network.Socket as Network
+import qualified Network.Socket.ByteString as Network
 import Network.XXX.ZigBee.Commander.Internal.Commander
 import qualified Network.XXX.ZigBee.Commander.Internal.Ops as Ops
 import System.Directory
@@ -41,7 +44,7 @@ import Text.Parsec
 import Text.Parsec.String
 
 -- | Opaque data type for referring to a client connection.
-data Client = Client Handle
+newtype Client = Client Network.Socket
 
 data RemoteRequest
   = -- | Send a command.
@@ -97,33 +100,41 @@ parseRemoteRequest s =
 server :: (MonadIO m) => Commander m ()
 server = do
   env <- ask
-  let handler = void . runCommander env . listen
-
-  liftIO $ do
-    path <- serverSocketName
-    socket <- Network.listenOn (Network.UnixSocket path)
-    handler socket `finally` cleanup socket path
+  path <- serverSocketName
+  liftIO $ bracket (open path) (close path) (void . runCommander env . listen)
   where
-    cleanup :: Network.Socket -> FilePath -> IO ()
-    cleanup socket path = do
-      Network.sClose socket
-      removeFile path
+    open :: FilePath -> IO Network.Socket
+    open path = do
+      createDirectoryIfMissing True (takeDirectory path)
+      sock <- Network.socket Network.AF_UNIX Network.Stream 0
+      Network.bind sock $ Network.SockAddrUnix path
+      Network.listen sock Network.maxListenQueue
+      pure sock
+
+    close :: FilePath -> Network.Socket -> IO ()
+    close path socket = do
+      Network.close socket
+      doesPathExist path >>= flip when (removeFile path)
 
     listen :: (MonadIO m) => Network.Socket -> Commander m ()
     listen socket = do
       env <- ask
-      let handler = runCommander env . processRequests
 
       forever $
         liftIO $ do
-          (h, _, _) <- Network.accept socket
-          hSetBuffering h LineBuffering
-          async (handler h `finally` hClose h)
+          (clientSocket, _clientAddr) <- Network.accept socket
+          async (runCommander env $ processRequests clientSocket)
 
-    processRequests :: (MonadIO m) => Handle -> Commander m ()
-    processRequests h = forever $ do
-      request <- liftIO (ByteStringL.fromStrict <$> ByteString.hGetLine h)
-      mapM_ dispatch (Aeson.decode request)
+    processRequests :: (MonadIO m) => Network.Socket -> Commander m ()
+    processRequests socket =
+      let read previous = do
+            (buffer, leftovers) <-
+              first (previous <>) . ByteString.break (== '\n')
+                <$> liftIO (Network.recv socket 4096)
+            unless (ByteString.null buffer) $ do
+              traverse_ dispatch (Aeson.decode $ ByteStringL.fromStrict buffer)
+              read leftovers
+       in read ""
 
     dispatch :: (MonadIO m) => RemoteRequest -> Commander m ()
     dispatch (SendCommand name) = Ops.send name
@@ -132,18 +143,17 @@ server = do
 client :: (Client -> IO a) -> IO a
 client f = do
   path <- serverSocketName
-  socket <- Network.connectTo "localhost" (Network.UnixSocket path)
-  hSetBuffering socket LineBuffering
-  f (Client socket) `finally` hClose socket
+  socket <- Network.socket Network.AF_UNIX Network.Stream 0
+  Network.connect socket $ Network.SockAddrUnix path
+  f (Client socket)
 
 send :: Client -> RemoteRequest -> IO ()
-send (Client socket) request = do
-  ByteStringL.hPut socket (encode request)
-  hFlush socket
+send (Client socket) request =
+  Network.sendMany socket (ByteStringL.toChunks $ encode request)
 
 -- | Returns the file path for the Unix Domain Socket.
-serverSocketName :: IO FilePath
-serverSocketName = do
+serverSocketName :: MonadIO m => m FilePath
+serverSocketName = liftIO $ do
   directory <- getXdgDirectory XdgData "zbc"
   createDirectoryIfMissing True directory
   return (directory </> "zbc.socket")
