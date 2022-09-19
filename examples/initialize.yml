@@ -13,15 +13,23 @@ config:
 #  - broadcast: Send to all nodes on the network
 nodes:
   - name: outlet
-    addr: "00:13:a2:00:40:d8:71:0f"
+    addr: "00:13:a2:00:40:e6:e9:60"
 
 # Commands that can be sent to nodes:
 commands:
+  # cabal run zbc -- client -e "send Outlet D3 Off"
   - name: Outlet D3 Off
     node: outlet  # Name or MAC address
     type: AT      # AT Command
     code: D3      # Set I/O Pin 3
     payload: "4" # Digital Output, LOW (payload is in hex)
+
+  # cabal run zbc -- client -e "send Outlet D3 On"
+  - name: Outlet D3 On
+    node: outlet
+    type: AT
+    code: D3
+    payload: "5"
 
 # Event handlers:
 #
